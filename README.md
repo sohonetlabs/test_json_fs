@@ -13,24 +13,29 @@ Large structures can be emulated, for testing software.
 ## usage :- 
 
     python jsonfs.py -h
-    usage: jsonfs.py [-h] [--debug] [--fill-char FILL_CHAR] [--rate-limit RATE_LIMIT] [--iop-limit IOP_LIMIT] [--no-report] json_file mount_point
+        usage: jsonfs.py [-h] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--fill-char FILL_CHAR] [--rate-limit RATE_LIMIT] [--iop-limit IOP_LIMIT]
+                        [--report-stats] [--log-to-syslog]
+                        json_file mount_point
 
-    Mount a JSON file as a read-only filesystem
+        Mount a JSON file as a read-only filesystem
 
-    positional arguments:
-    json_file             Path to the JSON file describing the filesystem
-    mount_point           Mount point for the filesystem
+        positional arguments:
+        json_file             Path to the JSON file describing the filesystem
+        mount_point           Mount point for the filesystem
 
-    options:
-    -h, --help            show this help message and exit
-    --debug               Enable debug output
-    --fill-char FILL_CHAR
-                          Character to fill read data with (default: null byte)
-    --rate-limit RATE_LIMIT
-                          Rate limit in seconds (e.g., 0.1 for 100ms delay)
-    --iop-limit IOP_LIMIT
-                          IOP limit per second (e.g., 100 for 100 IOPS)
-    --no-report           Disable IOPS and data transfer reporting
+        options:
+        -h, --help            show this help message and exit
+        --log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}
+                                Set the logging level (default: INFO)
+        --fill-char FILL_CHAR
+                                Character to fill read data with (default: null byte)
+        --rate-limit RATE_LIMIT
+                                Rate limit in seconds (e.g., 0.1 for 100ms delay)
+        --iop-limit IOP_LIMIT
+                                IOP limit per second (e.g., 100 for 100 IOPS)
+        --report-stats        Enable IOPS and data transfer reporting
+        --log-to-syslog       Log to syslog instead of a stdout
+            --log-to-stdout       Log to stdout instead of a file
 
 
 ## example :-
@@ -42,27 +47,21 @@ Large structures can be emulated, for testing software.
 
 you will now have a filesystem mounted on ./jsonfs
 
-    Root structure:
-    test (directory, size: 384.00 bytes (384 bytes))
-        filename000000000.txt (file, size: 1.00 KB (1024 bytes))
-        filename000000001.txt (file, size: 1.00 KB (1024 bytes))
-        filename000000002.txt (file, size: 1.00 KB (1024 bytes))
-        filename000000003.txt (file, size: 1.00 KB (1024 bytes))
-        filename000000004.txt (file, size: 1.00 KB (1024 bytes))
-        ... (5 more items)
-        File: filename000000000.txt, Size: 1.00 KB (1024 bytes)
-        File: filename000000001.txt, Size: 1.00 KB (1024 bytes)
-        File: filename000000002.txt, Size: 1.00 KB (1024 bytes)
-        File: filename000000003.txt, Size: 1.00 KB (1024 bytes)
-        File: filename000000004.txt, Size: 1.00 KB (1024 bytes)
-        File: filename000000005.txt, Size: 1.00 KB (1024 bytes)
-        File: filename000000006.txt, Size: 1.00 KB (1024 bytes)
-        File: filename000000007.txt, Size: 1.00 KB (1024 bytes)
-        File: filename000000008.txt, Size: 1.00 KB (1024 bytes)
-        File: filename000000009.txt, Size: 1.00 KB (1024 bytes)
-        Directory: test, Size: 10.00 KB (10240 bytes)
-        Total size: 10.00 KB (10240 bytes)
-        Total files: 10
+    python jsonfs.py ./example/test.json ./jsonfs
+    2024-07-29 15:52:42,569 - INFO - Starting JSONFileSystem with log level: INFO
+    2024-07-29 15:52:42,570 - INFO - Initializing JSONFileSystem
+    2024-07-29 15:52:42,570 - INFO - Total size: 10.00 KB (10240 bytes)
+    2024-07-29 15:52:42,570 - INFO - Total files: 10
+    2024-07-29 15:52:42,639 - WARNING - Path not found: /.hidden
+    2024-07-29 15:52:42,641 - WARNING - Path not found: /.DS_Store
+    2024-07-29 15:52:42,660 - WARNING - Path not found: /DCIM
+    2024-07-29 15:52:42,661 - WARNING - Path not found: /.metadata_never_index_unless_rootfs
+    2024-07-29 15:52:42,662 - WARNING - Path not found: /.metadata_never_index
+    2024-07-29 15:52:42,662 - WARNING - Path not found: /.metadata_direct_scope_only
+    2024-07-29 15:52:42,663 - WARNING - Path not found: /.Spotlight-V100
+    2024-07-29 15:52:42,835 - WARNING - Path not found: /Applications
+
+pretty sure the warnings are finder trying some stuff
 
 ## output from df
 

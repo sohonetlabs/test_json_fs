@@ -3,12 +3,22 @@ import json
 import os
 import threading
 import time
+import logging
 from errno import ENOENT, EROFS
 from functools import lru_cache, wraps
 from stat import S_IFDIR, S_IFREG
 
 from fuse import FUSE, FuseOSError, Operations
 
+def setup_logging(log_level, log_to_stdout=False):
+    log_format = '%(asctime)s - %(levelname)s - %(message)s'
+    
+    if log_to_stdout:
+        logging.basicConfig(level=log_level, format=log_format)
+    else:
+        logging.basicConfig(filename='jsonfs.log', level=log_level, format=log_format)
+
+    return logging.getLogger(__name__)
 
 def humanize_bytes(bytes, precision=2):
     abbrevs = (
@@ -25,7 +35,6 @@ def humanize_bytes(bytes, precision=2):
         if bytes >= factor:
             break
     return f"{bytes / factor:.{precision}f} {suffix}"
-
 
 class TokenBucket:
     def __init__(self, tokens, time_unit=1.0, fill_rate=None):
@@ -51,7 +60,6 @@ class TokenBucket:
                 self.tokens = 0
                 return sleep_time
 
-
 def rate_limited(func):
     @wraps(func)
     def wrapper(self, *args, **kwargs):
@@ -61,29 +69,27 @@ def rate_limited(func):
         if self.rate_limit > 0:
             time.sleep(self.rate_limit)
         return func(self, *args, **kwargs)
-
     return wrapper
-
 
 class JSONFileSystem(Operations):
     def __init__(
         self,
         json_data,
-        debug=False,
         fill_char="\0",
         rate_limit=0,
         iop_limit=0,
         report=True,
+        logger=None
     ):
         self.json_data = json_data
         self.root = json_data[0]  # The first item should be the root directory
         self.now = time.time()
-        self.debug = debug
         self.fill_char = fill_char
         self.rate_limit = rate_limit
         self.iop_limit = iop_limit
         self.report = report
         self.token_bucket = TokenBucket(iop_limit) if iop_limit > 0 else None
+        self.logger = logger or logging.getLogger(__name__)
 
         # IOPS and data transfer counters
         self.iops_count = 0
@@ -97,17 +103,16 @@ class JSONFileSystem(Operations):
             16384: fill_char.encode() * 16384,
         }
 
-        if self.debug:
-            print("Root structure:")
-            self._print_structure(self.root, max_depth=2)
+        self.logger.info("Initializing JSONFileSystem")
+        self.logger.debug("Root structure:")
+        self._print_structure(self.root, max_depth=2)
 
         self.total_size = self._calculate_total_size(self.root)
         self.total_files = self._count_files(self.root)
-        if self.debug:
-            print(
-                f"Total size: {humanize_bytes(self.total_size)} ({self.total_size} bytes)"
-            )
-            print(f"Total files: {self.total_files}")
+        self.logger.info(
+            f"Total size: {humanize_bytes(self.total_size)} ({self.total_size} bytes)"
+        )
+        self.logger.info(f"Total files: {self.total_files}")
 
         # Build flat dictionary for faster lookups
         self.path_map = self._build_path_map(self.root)
@@ -143,33 +148,30 @@ class JSONFileSystem(Operations):
             size_str = f"{humanize_bytes(item_size)} ({item_size} bytes)"
         else:
             size_str = str(item_size)
-        print(f"{indent}{item_name} ({item_type}, size: {size_str})")
+        self.logger.debug(f"{indent}{item_name} ({item_type}, size: {size_str})")
         if item_type == "directory" and "contents" in item:
             for child in item["contents"][:5]:  # Print only first 5 children
                 self._print_structure(child, depth + 1, max_depth)
             if len(item["contents"]) > 5:
-                print(f"{indent}  ... ({len(item['contents']) - 5} more items)")
+                self.logger.debug(f"{indent}  ... ({len(item['contents']) - 5} more items)")
 
     def _calculate_total_size(self, item):
         item_type = item.get("type")
         item_name = item.get("name", "unnamed")
         if item_type == "file":
             size = item.get("size", 0)
-            if self.debug:
-                print(f"File: {item_name}, Size: {humanize_bytes(size)} ({size} bytes)")
+            self.logger.debug(f"File: {item_name}, Size: {humanize_bytes(size)} ({size} bytes)")
             return size
         elif item_type == "directory":
             dir_size = sum(
                 self._calculate_total_size(child) for child in item.get("contents", [])
             )
-            if self.debug:
-                print(
-                    f"Directory: {item_name}, Size: {humanize_bytes(dir_size)} ({dir_size} bytes)"
-                )
+            self.logger.debug(
+                f"Directory: {item_name}, Size: {humanize_bytes(dir_size)} ({dir_size} bytes)"
+            )
             return dir_size
         else:
-            if self.debug:
-                print(f"Unknown item type: {item_type} for {item_name}")
+            self.logger.warning(f"Unknown item type: {item_type} for {item_name}")
             return 0
 
     def _count_files(self, item):
@@ -196,8 +198,10 @@ class JSONFileSystem(Operations):
     @rate_limited
     def getattr(self, path, fh=None):
         self._increment_stats()
+        self.logger.debug(f"getattr called for path: {path}")
         item = self._get_item(path)
         if item is None:
+            self.logger.warning(f"Path not found: {path}")
             raise FuseOSError(ENOENT)
 
         st = {
@@ -214,28 +218,35 @@ class JSONFileSystem(Operations):
             st["st_mode"] = S_IFREG | 0o444
             st["st_size"] = item.get("size", 0)
 
+        self.logger.debug(f"getattr returned: {st}")
         return st
 
     @rate_limited
     def readdir(self, path, fh):
         self._increment_stats()
+        self.logger.debug(f"readdir called for path: {path}")
         item = self._get_item(path)
         if item is None or item["type"] != "directory":
+            self.logger.warning(f"Invalid directory path: {path}")
             raise FuseOSError(ENOENT)
 
         yield "."
         yield ".."
         for child in item.get("contents", []):
+            self.logger.debug(f"Yielding child: {child['name']}")
             yield child["name"]
 
     @rate_limited
     def read(self, path, size, offset, fh):
+        self.logger.debug(f"read called for path: {path}, size: {size}, offset: {offset}")
         item = self._get_item(path)
         if item is None or item["type"] != "file":
+            self.logger.warning(f"Invalid file path: {path}")
             raise FuseOSError(ENOENT)
 
         read_size = min(size, item.get("size", 0) - offset)
         self._increment_stats(read_size)
+        self.logger.debug(f"Returning {read_size} bytes of data")
         if read_size in self.read_buffers:
             return self.read_buffers[read_size]
         return self.fill_char.encode() * read_size
@@ -314,7 +325,6 @@ class JSONFileSystem(Operations):
     def truncate(self, path, length):
         raise FuseOSError(EROFS)
 
-
 def main():
     parser = argparse.ArgumentParser(
         description="Mount a JSON file as a read-only filesystem"
@@ -323,7 +333,12 @@ def main():
         "json_file", help="Path to the JSON file describing the filesystem"
     )
     parser.add_argument("mount_point", help="Mount point for the filesystem")
-    parser.add_argument("--debug", action="store_true", help="Enable debug output")
+    parser.add_argument(
+        "--log-level",
+        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+        default='INFO',
+        help="Set the logging level (default: INFO)",
+    )
     parser.add_argument(
         "--fill-char",
         default="\0",
@@ -346,7 +361,17 @@ def main():
         action="store_false",
         help="Enable IOPS and data transfer reporting",
     )
+    parser.add_argument(
+        "--log-to-syslog",
+        action="store_true",
+        help="Log to syslog instead of a stdout",
+    )
     args = parser.parse_args()
+
+    log_level = getattr(logging, args.log_level)
+    logger = setup_logging(log_level=log_level, log_to_stdout=not args.log_to_syslog)
+
+    logger.info(f"Starting JSONFileSystem with log level: {args.log_level}")
 
     with open(args.json_file, "r") as f:
         json_data = json.load(f)
@@ -354,17 +379,16 @@ def main():
     FUSE(
         JSONFileSystem(
             json_data,
-            debug=args.debug,
             fill_char=args.fill_char,
             rate_limit=args.rate_limit,
             iop_limit=args.iop_limit,
             report=not args.report_stats,
+            logger=logger
         ),
         args.mount_point,
         nothreads=True,
         foreground=True,
     )
-
 
 if __name__ == "__main__":
     main()
