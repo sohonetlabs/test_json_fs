@@ -10,6 +10,27 @@ Large structures can be emulated, for testing software.
 
 ## SEE NOTE
 
+## Features
+
+- Mount a JSON file as a read-only filesystem
+- Configurable logging levels
+- Rate limiting for operations
+- IOP (I/O operations) limiting
+- IOPS and data transfer reporting
+- Custom fill character for read operations
+
+## Requirements
+
+- Python 3.6+
+- FUSE
+- `fusepy` Python package
+
+## Limitations
+
+The filesystem is read-only. Write operations will raise a "Read-only file system" error.
+The content of files is filled with a placeholder character (default is null byte).
+Symlinks are not supported.
+
 ## usage :- 
 
     python jsonfs.py -h
