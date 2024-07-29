@@ -1,0 +1,17 @@
+[
+    {"type":"directory","name":"test","size":384,"contents":[
+      {"type":"file","name":"filename000000000.txt","size":1024},
+      {"type":"file","name":"filename000000001.txt","size":1024},
+      {"type":"file","name":"filename000000002.txt","size":1024},
+      {"type":"file","name":"filename000000003.txt","size":1024},
+      {"type":"file","name":"filename000000004.txt","size":1024},
+      {"type":"file","name":"filename000000005.txt","size":1024},
+      {"type":"file","name":"filename000000006.txt","size":1024},
+      {"type":"file","name":"filename000000007.txt","size":1024},
+      {"type":"file","name":"filename000000008.txt","size":1024},
+      {"type":"file","name":"filename000000009.txt","size":1024}
+    ]}
+  ,
+    {"type":"report","directories":0,"files":10}
+  ]
+  
