@@ -10,6 +10,8 @@ from stat import S_IFDIR, S_IFREG
 
 from fuse import FUSE, FuseOSError, Operations
 
+__version__ = "1.0.0"
+
 def setup_logging(log_level, log_to_stdout=False):
     log_format = '%(asctime)s - %(levelname)s - %(message)s'
     
@@ -366,12 +368,18 @@ def main():
         action="store_true",
         help="Log to syslog instead of a stdout",
     )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {__version__}",
+        help="Show the version number and exit"
+    )
     args = parser.parse_args()
 
     log_level = getattr(logging, args.log_level)
     logger = setup_logging(log_level=log_level, log_to_stdout=not args.log_to_syslog)
 
-    logger.info(f"Starting JSONFileSystem with log level: {args.log_level}")
+    logger.info(f"Starting JSONFileSystem version {__version__} with log level: {args.log_level}")
 
     with open(args.json_file, "r") as f:
         json_data = json.load(f)
