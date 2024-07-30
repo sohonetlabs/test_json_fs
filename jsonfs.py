@@ -207,6 +207,9 @@ class JSONFileSystem(Operations):
                 )
                 if self.fill_mode == SEMI_RANDOM_MODE:
                     print(f"{self._cache_info()}")
+                    self.block_cache_hits = 0
+                    self.block_cache_misses = 0
+                    
                 self.iops_count = 0
                 self.bytes_read = 0
 
