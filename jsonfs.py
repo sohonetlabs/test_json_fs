@@ -4,13 +4,19 @@ import os
 import threading
 import time
 import logging
+import sys
+import hashlib
 from errno import ENOENT, EROFS
 from functools import lru_cache, wraps
 from stat import S_IFDIR, S_IFREG
 
 from fuse import FUSE, FuseOSError, Operations
+from cachetools import LRUCache
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
+
+FILL_CHAR_MODE = 'fill_char'
+SEMI_RANDOM_MODE = 'semi_random'
 
 def setup_logging(log_level, log_to_stdout=False):
     log_format = '%(asctime)s - %(levelname)s - %(message)s'
@@ -37,6 +43,18 @@ def humanize_bytes(bytes, precision=2):
         if bytes >= factor:
             break
     return f"{bytes / factor:.{precision}f} {suffix}"
+
+def parse_size(size):
+    units = {
+        'k': 1024,
+        'M': 1024 * 1024,
+        'G': 1024 * 1024 * 1024
+    }
+    if isinstance(size, int):
+        return size
+    if size[-1] in units:
+        return int(size[:-1]) * units[size[-1]]
+    return int(size)
 
 class TokenBucket:
     def __init__(self, tokens, time_unit=1.0, fill_rate=None):
@@ -78,34 +96,50 @@ class JSONFileSystem(Operations):
         self,
         json_data,
         fill_char="\0",
+        fill_mode=FILL_CHAR_MODE,
         rate_limit=0,
         iop_limit=0,
         report=True,
-        logger=None
+        logger=None,
+        block_size=1*1024*1024,
+        block_cache_size=1000
     ):
         self.json_data = json_data
         self.root = json_data[0]  # The first item should be the root directory
         self.now = time.time()
+        self.fill_mode = fill_mode
         self.fill_char = fill_char
         self.rate_limit = rate_limit
         self.iop_limit = iop_limit
         self.report = report
         self.token_bucket = TokenBucket(iop_limit) if iop_limit > 0 else None
         self.logger = logger or logging.getLogger(__name__)
+        self.block_size = block_size
 
         # IOPS and data transfer counters
         self.iops_count = 0
         self.bytes_read = 0
         self.stats_lock = threading.Lock()
 
-        # Pre-generate read buffers
-        self.read_buffers = {
-            4096: fill_char.encode() * 4096,
-            8192: fill_char.encode() * 8192,
-            16384: fill_char.encode() * 16384,
-        }
+        # Block cache setup
+        self.block_cache = LRUCache(maxsize=block_cache_size)
+        self.block_cache_hits = 0
+        self.block_cache_misses = 0
+
+        # Pre-generate read buffers for fill_char mode
+        if self.fill_mode == FILL_CHAR_MODE:
+            self.read_buffers = {
+                4096: fill_char.encode() * 4096,
+                8192: fill_char.encode() * 8192,
+                16384: fill_char.encode() * 16384,
+            }
 
         self.logger.info("Initializing JSONFileSystem")
+        self.logger.info(f"Fill mode: {self.fill_mode}")
+        self.logger.info(f"Block size: {humanize_bytes(self.block_size)}")
+        self.logger.info(f"Block cache size: {self.block_cache.maxsize} blocks")
+        self.logger.info(f"Rate limit: {self.rate_limit} seconds")
+        self.logger.info(f"IOP limit: {self.iop_limit} IOPS")
         self.logger.debug("Root structure:")
         self._print_structure(self.root, max_depth=2)
 
@@ -197,6 +231,112 @@ class JSONFileSystem(Operations):
     def _get_item(self, path):
         return self.path_map.get(path)
 
+    def _cache_info(self):
+        total = self.block_cache_hits + self.block_cache_misses
+        hit_rate = (self.block_cache_hits / total) * 100 if total > 0 else 0
+        return f"Block cache: hits: {self.block_cache_hits}, misses: {self.block_cache_misses}, hit rate: {hit_rate:.2f}%"
+
+    @lru_cache(maxsize=1000)
+    def _get_block_seed(self, path, block):
+        """
+        Generate a unique seed for a given file path and block number.
+        This method is cached to avoid recalculating seeds for frequently accessed blocks.
+        
+        Strategy:
+        1. Create a unique seed by combining the file path and block number.
+        2. Use MD5 hashing to generate a consistent and well-distributed seed.
+        3. Convert the MD5 hash to an integer for use as a random seed.
+        """
+        base_seed = hashlib.md5(path.encode()).digest()
+        block_seed = hashlib.md5(base_seed + block.to_bytes(8, byteorder='big')).digest()
+        return int.from_bytes(block_seed, byteorder='big')
+
+    def _generate_block_data(self, path, block):
+        """
+        Generate or retrieve cached data for a specific block of a file.
+        
+        Caching strategy:
+        1. Check if the block is in the cache. If so, return it (cache hit).
+        2. If not in cache, generate the block data (cache miss).
+        3. Store the generated data in the cache for future use.
+        4. Return the generated data.
+
+        This strategy ensures that frequently accessed blocks are quickly retrieved from cache,
+        while still allowing for deterministic generation of any block when needed.
+        """
+        cache_key = (path, block)
+        if cache_key in self.block_cache:
+            self.block_cache_hits += 1
+            return self.block_cache[cache_key]
+
+        self.block_cache_misses += 1
+        random_seed = self._get_block_seed(path, block)
+
+        block_data = bytearray(self.block_size)
+        for i in range(self.block_size):
+            random_seed = (random_seed * 1103515245 + 12345) & 0x7fffffff
+            block_data[i] = random_seed % 256
+
+        block_data = bytes(block_data)
+        self.block_cache[cache_key] = block_data
+        return block_data
+
+    @rate_limited
+    def read(self, path, size, offset, fh):
+        """
+        Read data from a file in the virtual filesystem.
+        
+        Strategy:
+        1. Validate the file path and calculate the actual read size.
+        2. For FILL_CHAR_MODE, return a buffer filled with the specified character.
+        3. For SEMI_RANDOM_MODE:
+           a. Determine which blocks are needed based on the offset and size.
+           b. For each required block:
+              - Generate or retrieve the block data from cache.
+              - Extract the needed portion of the block.
+              - Append the extracted data to the result.
+        4. Return the assembled data.
+
+        This approach allows for efficient reading of file data, leveraging block caching
+        to improve performance for repeated reads of the same file regions.
+        """
+        self.logger.debug(f"read called for path: {path}, size: {size}, offset: {offset}")
+
+        item = self._get_item(path)
+        if item is None or item["type"] != "file":
+            self.logger.warning(f"Invalid file path: {path}")
+            raise FuseOSError(ENOENT)
+
+        read_size = min(size, item.get("size", 0) - offset)
+        self._increment_stats(read_size)
+        self.logger.debug(f"Returning {read_size} bytes of data")
+
+        if self.fill_mode == FILL_CHAR_MODE:
+            if read_size in self.read_buffers:
+                return self.read_buffers[read_size]
+            return self.fill_char.encode() * read_size
+        elif self.fill_mode == SEMI_RANDOM_MODE:
+            start_block = offset // self.block_size
+            end_block = (offset + read_size - 1) // self.block_size
+            
+            data = bytearray(read_size)
+            data_offset = 0
+            
+            for block in range(start_block, end_block + 1):
+                block_data = self._generate_block_data(path, block)
+                
+                # Calculate start and end positions within this block
+                block_start = max(0, offset - block * self.block_size)
+                block_end = min(self.block_size, offset + read_size - block * self.block_size)
+                
+                # Copy required portion of block data
+                chunk = block_data[block_start:block_end]
+                data[data_offset:data_offset + len(chunk)] = chunk
+                data_offset += len(chunk)
+
+            self.logger.debug(self._cache_info())
+            return bytes(data)
+
     @rate_limited
     def getattr(self, path, fh=None):
         self._increment_stats()
@@ -222,7 +362,7 @@ class JSONFileSystem(Operations):
 
         self.logger.debug(f"getattr returned: {st}")
         return st
-
+    
     @rate_limited
     def readdir(self, path, fh):
         self._increment_stats()
@@ -237,21 +377,6 @@ class JSONFileSystem(Operations):
         for child in item.get("contents", []):
             self.logger.debug(f"Yielding child: {child['name']}")
             yield child["name"]
-
-    @rate_limited
-    def read(self, path, size, offset, fh):
-        self.logger.debug(f"read called for path: {path}, size: {size}, offset: {offset}")
-        item = self._get_item(path)
-        if item is None or item["type"] != "file":
-            self.logger.warning(f"Invalid file path: {path}")
-            raise FuseOSError(ENOENT)
-
-        read_size = min(size, item.get("size", 0) - offset)
-        self._increment_stats(read_size)
-        self.logger.debug(f"Returning {read_size} bytes of data")
-        if read_size in self.read_buffers:
-            return self.read_buffers[read_size]
-        return self.fill_char.encode() * read_size
 
     def statfs(self, path):
         block_size = 4096
@@ -342,11 +467,6 @@ def main():
         help="Set the logging level (default: INFO)",
     )
     parser.add_argument(
-        "--fill-char",
-        default="\0",
-        help="Character to fill read data with (default: null byte)",
-    )
-    parser.add_argument(
         "--rate-limit",
         type=float,
         default=0,
@@ -366,7 +486,7 @@ def main():
     parser.add_argument(
         "--log-to-syslog",
         action="store_true",
-        help="Log to syslog instead of a stdout",
+        help="Log to syslog instead of stdout",
     )
     parser.add_argument(
         "--version",
@@ -374,6 +494,31 @@ def main():
         version=f"%(prog)s {__version__}",
         help="Show the version number and exit"
     )
+    parser.add_argument(
+        '--block-size', 
+        type=str, 
+        default="1M",
+        help='Size of blocks for semi-random data generation (e.g., 1M, 2G, 512K). Default: 1M'
+    )
+    parser.add_argument(
+        '--block-cache-size', 
+        type=int, 
+        default=1000,
+        help='Number of blocks to cache for semi-random data generation. Default: 1000'
+    )
+    
+    # Add new mutually exclusive group for fill modes
+    fill_mode_group = parser.add_mutually_exclusive_group()
+    fill_mode_group.add_argument(
+        "--fill-char",
+        help="Character to fill read data with (default: null byte)",
+    )
+    fill_mode_group.add_argument(
+        "--semi-random",
+        action="store_true",
+        help="Use semi-random data for file contents",
+    )
+    
     args = parser.parse_args()
 
     log_level = getattr(logging, args.log_level)
@@ -381,17 +526,28 @@ def main():
 
     logger.info(f"Starting JSONFileSystem version {__version__} with log level: {args.log_level}")
 
+    if args.fill_char and args.semi_random:
+        logger.error("Error: Cannot use both --fill-char and --semi-random options.")
+        sys.exit(1)
+
+    fill_mode = SEMI_RANDOM_MODE if args.semi_random else FILL_CHAR_MODE
+    fill_char = args.fill_char if args.fill_char else "\0"
+    block_size = parse_size(args.block_size)
+
     with open(args.json_file, "r") as f:
         json_data = json.load(f)
 
     FUSE(
         JSONFileSystem(
             json_data,
-            fill_char=args.fill_char,
+            fill_char=fill_char,
+            fill_mode=fill_mode,
             rate_limit=args.rate_limit,
             iop_limit=args.iop_limit,
             report=not args.report_stats,
-            logger=logger
+            logger=logger,
+            block_size=block_size,
+            block_cache_size=args.block_cache_size
         ),
         args.mount_point,
         nothreads=True,
