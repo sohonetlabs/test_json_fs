@@ -95,25 +95,32 @@ Symlinks are not supported.
     # create mount point 
     mkdir ./jsonfs
     # mount the filesystem
-    python jsonfs.py ./test.json --no-report --debug
+    
+
+    python jsonfs.py ./example/test.json ./jsonfs
 
 you will now have a filesystem mounted on ./jsonfs
 
     python jsonfs.py ./example/test.json ./jsonfs
-    2024-07-29 15:52:42,569 - INFO - Starting JSONFileSystem with log level: INFO
-    2024-07-29 15:52:42,570 - INFO - Initializing JSONFileSystem
-    2024-07-29 15:52:42,570 - INFO - Total size: 10.00 KB (10240 bytes)
-    2024-07-29 15:52:42,570 - INFO - Total files: 10
-    2024-07-29 15:52:42,639 - WARNING - Path not found: /.hidden
-    2024-07-29 15:52:42,641 - WARNING - Path not found: /.DS_Store
-    2024-07-29 15:52:42,660 - WARNING - Path not found: /DCIM
-    2024-07-29 15:52:42,661 - WARNING - Path not found: /.metadata_never_index_unless_rootfs
-    2024-07-29 15:52:42,662 - WARNING - Path not found: /.metadata_never_index
-    2024-07-29 15:52:42,662 - WARNING - Path not found: /.metadata_direct_scope_only
-    2024-07-29 15:52:42,663 - WARNING - Path not found: /.Spotlight-V100
-    2024-07-29 15:52:42,835 - WARNING - Path not found: /Applications
 
-pretty sure the warnings are finder trying some stuff
+        2024-07-30 15:10:59,537 - INFO - Starting JSONFileSystem version 1.2.0 with log level: INFO
+        2024-07-30 15:10:59,538 - INFO - Using seed: 4
+        2024-07-30 15:10:59,538 - INFO - Generating 100 blocks of size 128.00 KB
+        2024-07-30 15:11:00,890 - INFO - Block cache generation took 1.35 seconds
+        2024-07-30 15:11:00,890 - INFO - Initializing JSONFileSystem
+        2024-07-30 15:11:00,890 - INFO - Fill mode: fill_char
+        2024-07-30 15:11:00,890 - INFO - Block size: 128.00 KB
+        2024-07-30 15:11:00,890 - INFO - Pre-generated blocks: 100
+        2024-07-30 15:11:00,890 - INFO - Rate limit: 0 seconds
+        2024-07-30 15:11:00,890 - INFO - IOP limit: 0 IOPS
+        2024-07-30 15:11:00,890 - INFO - Total size: 10.00 KB (10240 bytes)
+        2024-07-30 15:11:00,890 - INFO - Total files: 10
+        2024-07-30 15:11:00,890 - INFO - Added macOS control files to root directory
+        2024-07-30 15:11:00,960 - WARNING - Path not found: /.hidden
+        2024-07-30 15:11:00,961 - WARNING - Path not found: /.DS_Store
+        2024-07-30 15:11:00,964 - WARNING - Path not found: /DCIM
+        2024-07-30 15:11:00,966 - WARNING - Path not found: /.Spotlight-V100
+
 
 ## output from df
 

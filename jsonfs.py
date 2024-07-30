@@ -14,7 +14,7 @@ from stat import S_IFDIR, S_IFREG
 
 from fuse import FUSE, FuseOSError, Operations
 
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 
 # Constants for fill modes
 FILL_CHAR_MODE = "fill_char"
