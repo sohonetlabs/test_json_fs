@@ -205,6 +205,8 @@ class JSONFileSystem(Operations):
                 print(
                     f"IOPS: {self.iops_count}, Data transferred: {humanize_bytes(self.bytes_read)}/s ({self.bytes_read} B/s)"
                 )
+                if self.fill_mode == SEMI_RANDOM_MODE:
+                    print(f"{self._cache_info()}")
                 self.iops_count = 0
                 self.bytes_read = 0
 
