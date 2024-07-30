@@ -17,7 +17,8 @@ Large structures can be emulated, for testing software.
 - Rate limiting for operations
 - IOP (I/O operations) limiting
 - IOPS and data transfer reporting
-- Custom fill character for read operations
+- Custom fill character for read operations or use semi random data
+
 
 ## Requirements
 
@@ -28,35 +29,42 @@ Large structures can be emulated, for testing software.
 ## Limitations
 
 The filesystem is read-only. Write operations will raise a "Read-only file system" error.
-The content of files is filled with a placeholder character (default is null byte).
+The content of files is filled with a placeholder character (default is null byte), OR can be semi random data.
+** semi random is abot 100x slower ** at the moment.
+
 Symlinks are not supported.
 
 ## usage :- 
 
-    python jsonfs.py -h
-        usage: jsonfs.py [-h] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--fill-char FILL_CHAR] [--rate-limit RATE_LIMIT] [--iop-limit IOP_LIMIT]
-                        [--report-stats] [--log-to-syslog]
-                        json_file mount_point
+    usage: jsonfs.py [-h] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--rate-limit RATE_LIMIT] [--iop-limit IOP_LIMIT] [--report-stats]
+                    [--log-to-syslog] [--version] [--block-size BLOCK_SIZE] [--block-cache-size BLOCK_CACHE_SIZE]
+                    [--fill-char FILL_CHAR | --semi-random]
+                    json_file mount_point
 
-        Mount a JSON file as a read-only filesystem
+    Mount a JSON file as a read-only filesystem
 
-        positional arguments:
-        json_file             Path to the JSON file describing the filesystem
-        mount_point           Mount point for the filesystem
+    positional arguments:
+    json_file             Path to the JSON file describing the filesystem
+    mount_point           Mount point for the filesystem
 
-        options:
-        -h, --help            show this help message and exit
-        --log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}
-                                Set the logging level (default: INFO)
-        --fill-char FILL_CHAR
-                                Character to fill read data with (default: null byte)
-        --rate-limit RATE_LIMIT
-                                Rate limit in seconds (e.g., 0.1 for 100ms delay)
-        --iop-limit IOP_LIMIT
-                                IOP limit per second (e.g., 100 for 100 IOPS)
-        --report-stats        Enable IOPS and data transfer reporting
-        --log-to-syslog       Log to syslog instead of a stdout
-            --log-to-stdout       Log to stdout instead of a file
+    options:
+    -h, --help            show this help message and exit
+    --log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}
+                            Set the logging level (default: INFO)
+    --rate-limit RATE_LIMIT
+                            Rate limit in seconds (e.g., 0.1 for 100ms delay)
+    --iop-limit IOP_LIMIT
+                            IOP limit per second (e.g., 100 for 100 IOPS)
+    --report-stats        Enable IOPS and data transfer reporting
+    --log-to-syslog       Log to syslog instead of stdout
+    --version             Show the version number and exit
+    --block-size BLOCK_SIZE
+                            Size of blocks for semi-random data generation (e.g., 1M, 2G, 512K). Default: 1M
+    --block-cache-size BLOCK_CACHE_SIZE
+                            Number of blocks to cache for semi-random data generation. Default: 1000
+    --fill-char FILL_CHAR
+                            Character to fill read data with (default: null byte)
+    --semi-random         Use semi-random data for file contents
 
 
 ## example :-
