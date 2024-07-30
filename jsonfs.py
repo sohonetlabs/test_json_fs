@@ -1,32 +1,43 @@
 import argparse
+import hashlib
 import json
+import logging
 import os
+import platform
+import sys
 import threading
 import time
-import logging
-import sys
-import hashlib
 from errno import ENOENT, EROFS
 from functools import lru_cache, wraps
 from stat import S_IFDIR, S_IFREG
 
-from fuse import FUSE, FuseOSError, Operations
 from cachetools import LRUCache
+from fuse import FUSE, FuseOSError, Operations
 
 __version__ = "1.1.0"
 
-FILL_CHAR_MODE = 'fill_char'
-SEMI_RANDOM_MODE = 'semi_random'
+FILL_CHAR_MODE = "fill_char"
+SEMI_RANDOM_MODE = "semi_random"
+
+# the presence of these files in the root directory of the filesystem, with 0 size will stop
+# the spotlight indexing on macOS.
+macos_root_empty_files_to_control_caching = [
+    ".metadata_never_index",
+    ".metadata_never_index_unless_rootfs",
+    ".metadata_direct_scope_only",
+]
+
 
 def setup_logging(log_level, log_to_stdout=False):
-    log_format = '%(asctime)s - %(levelname)s - %(message)s'
-    
+    log_format = "%(asctime)s - %(levelname)s - %(message)s"
+
     if log_to_stdout:
         logging.basicConfig(level=log_level, format=log_format)
     else:
-        logging.basicConfig(filename='jsonfs.log', level=log_level, format=log_format)
+        logging.basicConfig(filename="jsonfs.log", level=log_level, format=log_format)
 
     return logging.getLogger(__name__)
+
 
 def humanize_bytes(bytes, precision=2):
     abbrevs = (
@@ -35,7 +46,7 @@ def humanize_bytes(bytes, precision=2):
         (1 << 30, "GB"),
         (1 << 20, "MB"),
         (1 << 10, "KB"),
-        (1, "bytes"),
+        (1, "Bytes"),
     )
     if bytes == 1:
         return "1 byte"
@@ -44,16 +55,24 @@ def humanize_bytes(bytes, precision=2):
             break
     return f"{bytes / factor:.{precision}f} {suffix}"
 
+
 def parse_size(size):
     units = {
-        'k': 1024,
-        'M': 1024 * 1024,
-        'G': 1024 * 1024 * 1024
+        "B": 1,
+        "k": 1024, "K": 1024,
+        "M": 1024 * 1024, "m": 1024 * 1024,
+        "G": 1024 * 1024 * 1024, "g": 1024 * 1024 * 1024,
+        "T": 1024 ** 4, "t": 1024 ** 4,
+        "P": 1024 ** 5, "p": 1024 ** 5,
+        "E": 1024 ** 6, "e": 1024 ** 6
     }
+    
     if isinstance(size, int):
         return size
+    
     if size[-1] in units:
         return int(size[:-1]) * units[size[-1]]
+    
     return int(size)
 
 class TokenBucket:
@@ -80,6 +99,7 @@ class TokenBucket:
                 self.tokens = 0
                 return sleep_time
 
+
 def rate_limited(func):
     @wraps(func)
     def wrapper(self, *args, **kwargs):
@@ -89,7 +109,9 @@ def rate_limited(func):
         if self.rate_limit > 0:
             time.sleep(self.rate_limit)
         return func(self, *args, **kwargs)
+
     return wrapper
+
 
 class JSONFileSystem(Operations):
     def __init__(
@@ -101,8 +123,8 @@ class JSONFileSystem(Operations):
         iop_limit=0,
         report=True,
         logger=None,
-        block_size=1*1024*1024,
-        block_cache_size=1000
+        block_size=1 * 1024 * 1024,
+        block_cache_size=1000,
     ):
         self.json_data = json_data
         self.root = json_data[0]  # The first item should be the root directory
@@ -145,10 +167,12 @@ class JSONFileSystem(Operations):
 
         self.total_size = self._calculate_total_size(self.root)
         self.total_files = self._count_files(self.root)
-        self.logger.info(
-            f"Total size: {humanize_bytes(self.total_size)} ({self.total_size} bytes)"
-        )
+        self.logger.info(f"Total size: {humanize_bytes(self.total_size)} ({self.total_size} bytes)")
         self.logger.info(f"Total files: {self.total_files}")
+
+        # add in files to control caching on macOS
+        if platform.system() == "Darwin":
+            self._add_macos_control_files()
 
         # Build flat dictionary for faster lookups
         self.path_map = self._build_path_map(self.root)
@@ -157,6 +181,17 @@ class JSONFileSystem(Operations):
         if self.report:
             self.stats_thread = threading.Thread(target=self._report_stats, daemon=True)
             self.stats_thread.start()
+
+    def _add_macos_control_files(self):
+        for filename in macos_root_empty_files_to_control_caching:
+            self.root["contents"].append(
+                {
+                    "type": "file",
+                    "name": filename,
+                    "size": 0,
+                }
+            )
+        self.logger.info("Added macOS control files to root directory")
 
     def _increment_stats(self, bytes_read=0):
         with self.stats_lock:
@@ -199,12 +234,8 @@ class JSONFileSystem(Operations):
             self.logger.debug(f"File: {item_name}, Size: {humanize_bytes(size)} ({size} bytes)")
             return size
         elif item_type == "directory":
-            dir_size = sum(
-                self._calculate_total_size(child) for child in item.get("contents", [])
-            )
-            self.logger.debug(
-                f"Directory: {item_name}, Size: {humanize_bytes(dir_size)} ({dir_size} bytes)"
-            )
+            dir_size = sum(self._calculate_total_size(child) for child in item.get("contents", []))
+            self.logger.debug(f"Directory: {item_name}, Size: {humanize_bytes(dir_size)} ({dir_size} bytes)")
             return dir_size
         else:
             self.logger.warning(f"Unknown item type: {item_type} for {item_name}")
@@ -234,27 +265,29 @@ class JSONFileSystem(Operations):
     def _cache_info(self):
         total = self.block_cache_hits + self.block_cache_misses
         hit_rate = (self.block_cache_hits / total) * 100 if total > 0 else 0
-        return f"Block cache: hits: {self.block_cache_hits}, misses: {self.block_cache_misses}, hit rate: {hit_rate:.2f}%"
+        return (
+            f"Block cache: hits: {self.block_cache_hits}, misses: {self.block_cache_misses}, hit rate: {hit_rate:.2f}%"
+        )
 
     @lru_cache(maxsize=1000)
     def _get_block_seed(self, path, block):
         """
         Generate a unique seed for a given file path and block number.
         This method is cached to avoid recalculating seeds for frequently accessed blocks.
-        
+
         Strategy:
         1. Create a unique seed by combining the file path and block number.
         2. Use MD5 hashing to generate a consistent and well-distributed seed.
         3. Convert the MD5 hash to an integer for use as a random seed.
         """
         base_seed = hashlib.md5(path.encode()).digest()
-        block_seed = hashlib.md5(base_seed + block.to_bytes(8, byteorder='big')).digest()
-        return int.from_bytes(block_seed, byteorder='big')
+        block_seed = hashlib.md5(base_seed + block.to_bytes(8, byteorder="big")).digest()
+        return int.from_bytes(block_seed, byteorder="big")
 
     def _generate_block_data(self, path, block):
         """
         Generate or retrieve cached data for a specific block of a file.
-        
+
         Caching strategy:
         1. Check if the block is in the cache. If so, return it (cache hit).
         2. If not in cache, generate the block data (cache miss).
@@ -274,7 +307,7 @@ class JSONFileSystem(Operations):
 
         block_data = bytearray(self.block_size)
         for i in range(self.block_size):
-            random_seed = (random_seed * 1103515245 + 12345) & 0x7fffffff
+            random_seed = (random_seed * 1103515245 + 12345) & 0x7FFFFFFF
             block_data[i] = random_seed % 256
 
         block_data = bytes(block_data)
@@ -285,7 +318,7 @@ class JSONFileSystem(Operations):
     def read(self, path, size, offset, fh):
         """
         Read data from a file in the virtual filesystem.
-        
+
         Strategy:
         1. Validate the file path and calculate the actual read size.
         2. For FILL_CHAR_MODE, return a buffer filled with the specified character.
@@ -318,23 +351,25 @@ class JSONFileSystem(Operations):
         elif self.fill_mode == SEMI_RANDOM_MODE:
             start_block = offset // self.block_size
             end_block = (offset + read_size - 1) // self.block_size
-            
+
             data = bytearray(read_size)
             data_offset = 0
-            
+
             for block in range(start_block, end_block + 1):
                 block_data = self._generate_block_data(path, block)
-                
+
                 # Calculate start and end positions within this block
                 block_start = max(0, offset - block * self.block_size)
                 block_end = min(self.block_size, offset + read_size - block * self.block_size)
-                
+
                 # Copy required portion of block data
                 chunk = block_data[block_start:block_end]
-                data[data_offset:data_offset + len(chunk)] = chunk
+                data[data_offset : data_offset + len(chunk)] = chunk
                 data_offset += len(chunk)
 
+            assert len(data) == read_size, f"Data size mismatch: expected {read_size}, got {len(data)}"
             self.logger.debug(self._cache_info())
+            
             return bytes(data)
 
     @rate_limited
@@ -362,7 +397,7 @@ class JSONFileSystem(Operations):
 
         self.logger.debug(f"getattr returned: {st}")
         return st
-    
+
     @rate_limited
     def readdir(self, path, fh):
         self._increment_stats()
@@ -452,18 +487,15 @@ class JSONFileSystem(Operations):
     def truncate(self, path, length):
         raise FuseOSError(EROFS)
 
+
 def main():
-    parser = argparse.ArgumentParser(
-        description="Mount a JSON file as a read-only filesystem"
-    )
-    parser.add_argument(
-        "json_file", help="Path to the JSON file describing the filesystem"
-    )
+    parser = argparse.ArgumentParser(description="Mount a JSON file as a read-only filesystem")
+    parser.add_argument("json_file", help="Path to the JSON file describing the filesystem")
     parser.add_argument("mount_point", help="Mount point for the filesystem")
     parser.add_argument(
         "--log-level",
-        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
-        default='INFO',
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        default="INFO",
         help="Set the logging level (default: INFO)",
     )
     parser.add_argument(
@@ -492,21 +524,21 @@ def main():
         "--version",
         action="version",
         version=f"%(prog)s {__version__}",
-        help="Show the version number and exit"
+        help="Show the version number and exit",
     )
     parser.add_argument(
-        '--block-size', 
-        type=str, 
+        "--block-size",
+        type=str,
         default="1M",
-        help='Size of blocks for semi-random data generation (e.g., 1M, 2G, 512K). Default: 1M'
+        help="Size of blocks for semi-random data generation (e.g., 1M, 2G, 512K). Default: 1M",
     )
     parser.add_argument(
-        '--block-cache-size', 
-        type=int, 
+        "--block-cache-size",
+        type=int,
         default=1000,
-        help='Number of blocks to cache for semi-random data generation. Default: 1000'
+        help="Number of blocks to cache for semi-random data generation. Default: 1000",
     )
-    
+
     # Add new mutually exclusive group for fill modes
     fill_mode_group = parser.add_mutually_exclusive_group()
     fill_mode_group.add_argument(
@@ -518,7 +550,7 @@ def main():
         action="store_true",
         help="Use semi-random data for file contents",
     )
-    
+
     args = parser.parse_args()
 
     log_level = getattr(logging, args.log_level)
@@ -547,12 +579,13 @@ def main():
             report=not args.report_stats,
             logger=logger,
             block_size=block_size,
-            block_cache_size=args.block_cache_size
+            block_cache_size=args.block_cache_size,
         ),
         args.mount_point,
         nothreads=True,
         foreground=True,
     )
+
 
 if __name__ == "__main__":
     main()
