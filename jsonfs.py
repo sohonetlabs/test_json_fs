@@ -4,31 +4,32 @@ import json
 import logging
 import os
 import platform
+import random
 import sys
 import threading
 import time
 from errno import ENOENT, EROFS
-from functools import lru_cache, wraps
+from functools import lru_cache
 from stat import S_IFDIR, S_IFREG
 
-from cachetools import LRUCache
 from fuse import FUSE, FuseOSError, Operations
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 
+# Constants for fill modes
 FILL_CHAR_MODE = "fill_char"
 SEMI_RANDOM_MODE = "semi_random"
 
-# the presence of these files in the root directory of the filesystem, with 0 size will stop
-# the spotlight indexing on macOS.
+# Files to control macOS Spotlight indexing
 macos_root_empty_files_to_control_caching = [
-    ".metadata_never_index",
-    ".metadata_never_index_unless_rootfs",
-    ".metadata_direct_scope_only",
+    ".metadata_never_index",  # Prevents Spotlight from indexing the volume
+    ".metadata_never_index_unless_rootfs",  # Prevents indexing unless it's the root filesystem
+    ".metadata_direct_scope_only",  # Limits Spotlight to direct scoping only
 ]
 
 
 def setup_logging(log_level, log_to_stdout=False):
+    """Set up logging configuration."""
     log_format = "%(asctime)s - %(levelname)s - %(message)s"
 
     if log_to_stdout:
@@ -40,6 +41,7 @@ def setup_logging(log_level, log_to_stdout=False):
 
 
 def humanize_bytes(bytes, precision=2):
+    """Convert bytes to a human-readable format."""
     abbrevs = (
         (1 << 50, "PB"),
         (1 << 40, "TB"),
@@ -57,60 +59,30 @@ def humanize_bytes(bytes, precision=2):
 
 
 def parse_size(size):
+    """Parse a size string (e.g., '1M', '2G') into bytes."""
     units = {
         "B": 1,
-        "k": 1024, "K": 1024,
-        "M": 1024 * 1024, "m": 1024 * 1024,
-        "G": 1024 * 1024 * 1024, "g": 1024 * 1024 * 1024,
-        "T": 1024 ** 4, "t": 1024 ** 4,
-        "P": 1024 ** 5, "p": 1024 ** 5,
-        "E": 1024 ** 6, "e": 1024 ** 6
+        "k": 1024,
+        "K": 1024,
+        "M": 1024 * 1024,
+        "m": 1024 * 1024,
+        "G": 1024 * 1024 * 1024,
+        "g": 1024 * 1024 * 1024,
+        "T": 1024**4,
+        "t": 1024**4,
+        "P": 1024**5,
+        "p": 1024**5,
+        "E": 1024**6,
+        "e": 1024**6,
     }
-    
+
     if isinstance(size, int):
         return size
-    
+
     if size[-1] in units:
         return int(size[:-1]) * units[size[-1]]
-    
+
     return int(size)
-
-class TokenBucket:
-    def __init__(self, tokens, time_unit=1.0, fill_rate=None):
-        self.tokens = tokens
-        self.time_unit = time_unit
-        self.fill_rate = tokens if fill_rate is None else fill_rate
-        self.timestamp = time.time()
-        self.lock = threading.Lock()
-
-    def consume(self, tokens=1):
-        with self.lock:
-            now = time.time()
-            time_passed = now - self.timestamp
-            self.tokens += time_passed * (self.fill_rate / self.time_unit)
-            if self.tokens > self.fill_rate:
-                self.tokens = self.fill_rate
-            self.timestamp = now
-            if self.tokens >= tokens:
-                self.tokens -= tokens
-                return 0
-            else:
-                sleep_time = (tokens - self.tokens) / (self.fill_rate / self.time_unit)
-                self.tokens = 0
-                return sleep_time
-
-
-def rate_limited(func):
-    @wraps(func)
-    def wrapper(self, *args, **kwargs):
-        if self.iop_limit > 0:
-            sleep_time = self.token_bucket.consume()
-            time.sleep(sleep_time)
-        if self.rate_limit > 0:
-            time.sleep(self.rate_limit)
-        return func(self, *args, **kwargs)
-
-    return wrapper
 
 
 class JSONFileSystem(Operations):
@@ -124,7 +96,9 @@ class JSONFileSystem(Operations):
         report=True,
         logger=None,
         block_size=1 * 1024 * 1024,
-        block_cache_size=1000,
+        pre_generated_blocks=1000,
+        seed=None,
+        add_macos_cache_files=True,
     ):
         self.json_data = json_data
         self.root = json_data[0]  # The first item should be the root directory
@@ -134,19 +108,23 @@ class JSONFileSystem(Operations):
         self.rate_limit = rate_limit
         self.iop_limit = iop_limit
         self.report = report
-        self.token_bucket = TokenBucket(iop_limit) if iop_limit > 0 else None
         self.logger = logger or logging.getLogger(__name__)
         self.block_size = block_size
+        self.pre_generated_blocks = pre_generated_blocks
+
+        # Set up consistent random seed
+        # see https://xkcd.com/221/
+        self.seed = seed if seed is not None else int(4)
+        self.random = random.Random(self.seed)
+        self.logger.info(f"Using seed: {self.seed}")
 
         # IOPS and data transfer counters
         self.iops_count = 0
         self.bytes_read = 0
         self.stats_lock = threading.Lock()
 
-        # Block cache setup
-        self.block_cache = LRUCache(maxsize=block_cache_size)
-        self.block_cache_hits = 0
-        self.block_cache_misses = 0
+        # Generate block cache
+        self.block_cache = self._generate_block_cache()
 
         # Pre-generate read buffers for fill_char mode
         if self.fill_mode == FILL_CHAR_MODE:
@@ -159,7 +137,7 @@ class JSONFileSystem(Operations):
         self.logger.info("Initializing JSONFileSystem")
         self.logger.info(f"Fill mode: {self.fill_mode}")
         self.logger.info(f"Block size: {humanize_bytes(self.block_size)}")
-        self.logger.info(f"Block cache size: {self.block_cache.maxsize} blocks")
+        self.logger.info(f"Pre-generated blocks: {self.pre_generated_blocks}")
         self.logger.info(f"Rate limit: {self.rate_limit} seconds")
         self.logger.info(f"IOP limit: {self.iop_limit} IOPS")
         self.logger.debug("Root structure:")
@@ -170,8 +148,8 @@ class JSONFileSystem(Operations):
         self.logger.info(f"Total size: {humanize_bytes(self.total_size)} ({self.total_size} bytes)")
         self.logger.info(f"Total files: {self.total_files}")
 
-        # add in files to control caching on macOS
-        if platform.system() == "Darwin":
+        # Add macOS control files to prevent caching, do not use plaform as we could be sharing the filesystem
+        if add_macos_cache_files:
             self._add_macos_control_files()
 
         # Build flat dictionary for faster lookups
@@ -182,7 +160,24 @@ class JSONFileSystem(Operations):
             self.stats_thread = threading.Thread(target=self._report_stats, daemon=True)
             self.stats_thread.start()
 
+    def _generate_block_cache(self):
+        """Generate a cache of pre-generated blocks."""
+        self.logger.info(f"Generating {self.pre_generated_blocks} blocks of size {humanize_bytes(self.block_size)}")
+        start_generation = time.time()
+        cache = []
+        for i in range(self.pre_generated_blocks):
+            block_data = bytearray(self.block_size)
+            block_seed = self.random.randint(0, 2**32 - 1)
+            for j in range(self.block_size):
+                block_seed = (block_seed * 1103515245 + 12345) & 0x7FFFFFFF
+                block_data[j] = block_seed % 256
+            cache.append(bytes(block_data))
+        end_generation = time.time()
+        self.logger.info(f"Block cache generation took {end_generation - start_generation:.2f} seconds")
+        return cache
+
     def _add_macos_control_files(self):
+        """Add control files to prevent Spotlight indexing on macOS."""
         for filename in macos_root_empty_files_to_control_caching:
             self.root["contents"].append(
                 {
@@ -192,28 +187,27 @@ class JSONFileSystem(Operations):
                 }
             )
         self.logger.info("Added macOS control files to root directory")
+        self.logger.debug("macOS control files added: " + ", ".join(macos_root_empty_files_to_control_caching))
 
     def _increment_stats(self, bytes_read=0):
+        """Increment IOPS and bytes read counters."""
         with self.stats_lock:
             self.iops_count += 1
             self.bytes_read += bytes_read
 
     def _report_stats(self):
+        """Report IOPS and data transfer statistics periodically."""
         while True:
             time.sleep(1)  # Report every second
             with self.stats_lock:
                 print(
                     f"IOPS: {self.iops_count}, Data transferred: {humanize_bytes(self.bytes_read)}/s ({self.bytes_read} B/s)"
                 )
-                if self.fill_mode == SEMI_RANDOM_MODE:
-                    print(f"{self._cache_info()}")
-                    self.block_cache_hits = 0
-                    self.block_cache_misses = 0
-                    
                 self.iops_count = 0
                 self.bytes_read = 0
 
     def _print_structure(self, item, depth=0, max_depth=2):
+        """Print the structure of the filesystem (for debugging)."""
         if depth > max_depth:
             return
         indent = "  " * depth
@@ -232,6 +226,7 @@ class JSONFileSystem(Operations):
                 self.logger.debug(f"{indent}  ... ({len(item['contents']) - 5} more items)")
 
     def _calculate_total_size(self, item):
+        """Calculate the total size of the filesystem."""
         item_type = item.get("type")
         item_name = item.get("name", "unnamed")
         if item_type == "file":
@@ -247,6 +242,7 @@ class JSONFileSystem(Operations):
             return 0
 
     def _count_files(self, item):
+        """Count the total number of files in the filesystem."""
         if "type" not in item:
             return 0
         if item["type"] == "file":
@@ -256,6 +252,7 @@ class JSONFileSystem(Operations):
         return 0
 
     def _build_path_map(self, item, current_path="/"):
+        """Build a flat dictionary mapping paths to items for faster lookups."""
         path_map = {current_path: item}
         if item["type"] == "directory":
             for child in item.get("contents", []):
@@ -265,78 +262,20 @@ class JSONFileSystem(Operations):
 
     @lru_cache(maxsize=1000)
     def _get_item(self, path):
+        """Get an item from the path map, with caching for performance."""
         return self.path_map.get(path)
-
-    def _cache_info(self):
-        total = self.block_cache_hits + self.block_cache_misses
-        hit_rate = (self.block_cache_hits / total) * 100 if total > 0 else 0
-        return (
-            f"Block cache: hits: {self.block_cache_hits}, misses: {self.block_cache_misses}, hit rate: {hit_rate:.2f}%"
-        )
-
-    @lru_cache(maxsize=1000)
-    def _get_block_seed(self, path, block):
-        """
-        Generate a unique seed for a given file path and block number.
-        This method is cached to avoid recalculating seeds for frequently accessed blocks.
-
-        Strategy:
-        1. Create a unique seed by combining the file path and block number.
-        2. Use MD5 hashing to generate a consistent and well-distributed seed.
-        3. Convert the MD5 hash to an integer for use as a random seed.
-        """
-        base_seed = hashlib.md5(path.encode()).digest()
-        block_seed = hashlib.md5(base_seed + block.to_bytes(8, byteorder="big")).digest()
-        return int.from_bytes(block_seed, byteorder="big")
 
     def _generate_block_data(self, path, block):
         """
-        Generate or retrieve cached data for a specific block of a file.
-
-        Caching strategy:
-        1. Check if the block is in the cache. If so, return it (cache hit).
-        2. If not in cache, generate the block data (cache miss).
-        3. Store the generated data in the cache for future use.
-        4. Return the generated data.
-
-        This strategy ensures that frequently accessed blocks are quickly retrieved from cache,
-        while still allowing for deterministic generation of any block when needed.
+        Retrieve pre-generated data for a specific block of a file.
         """
-        cache_key = (path, block)
-        if cache_key in self.block_cache:
-            self.block_cache_hits += 1
-            return self.block_cache[cache_key]
+        hash_value = hashlib.md5((path + str(block)).encode()).digest()
+        cache_index = int.from_bytes(hash_value, byteorder="big") % self.pre_generated_blocks
+        return self.block_cache[cache_index]
 
-        self.block_cache_misses += 1
-        random_seed = self._get_block_seed(path, block)
-
-        block_data = bytearray(self.block_size)
-        for i in range(self.block_size):
-            random_seed = (random_seed * 1103515245 + 12345) & 0x7FFFFFFF
-            block_data[i] = random_seed % 256
-
-        block_data = bytes(block_data)
-        self.block_cache[cache_key] = block_data
-        return block_data
-
-    @rate_limited
     def read(self, path, size, offset, fh):
         """
         Read data from a file in the virtual filesystem.
-
-        Strategy:
-        1. Validate the file path and calculate the actual read size.
-        2. For FILL_CHAR_MODE, return a buffer filled with the specified character.
-        3. For SEMI_RANDOM_MODE:
-           a. Determine which blocks are needed based on the offset and size.
-           b. For each required block:
-              - Generate or retrieve the block data from cache.
-              - Extract the needed portion of the block.
-              - Append the extracted data to the result.
-        4. Return the assembled data.
-
-        This approach allows for efficient reading of file data, leveraging block caching
-        to improve performance for repeated reads of the same file regions.
         """
         self.logger.debug(f"read called for path: {path}, size: {size}, offset: {offset}")
 
@@ -373,12 +312,10 @@ class JSONFileSystem(Operations):
                 data_offset += len(chunk)
 
             assert len(data) == read_size, f"Data size mismatch: expected {read_size}, got {len(data)}"
-            self.logger.debug(self._cache_info())
-            
             return bytes(data)
 
-    @rate_limited
     def getattr(self, path, fh=None):
+        """Get attributes of a file or directory."""
         self._increment_stats()
         self.logger.debug(f"getattr called for path: {path}")
         item = self._get_item(path)
@@ -403,8 +340,8 @@ class JSONFileSystem(Operations):
         self.logger.debug(f"getattr returned: {st}")
         return st
 
-    @rate_limited
     def readdir(self, path, fh):
+        """Read the contents of a directory."""
         self._increment_stats()
         self.logger.debug(f"readdir called for path: {path}")
         item = self._get_item(path)
@@ -419,6 +356,7 @@ class JSONFileSystem(Operations):
             yield child["name"]
 
     def statfs(self, path):
+        """Get filesystem statistics."""
         block_size = 4096
         total_blocks = (self.total_size + block_size - 1) // block_size
 
@@ -436,64 +374,82 @@ class JSONFileSystem(Operations):
         }
 
     def access(self, path, mode):
+        """Check if a path is accessible."""
         if not self._get_item(path):
             raise FuseOSError(ENOENT)
         return 0
 
     def opendir(self, path):
+        """Open a directory (basically just check if it exists)."""
         if not self._get_item(path):
             raise FuseOSError(ENOENT)
         return 0
 
     def releasedir(self, path, fh):
+        """Called when a directory is closed."""
         return 0
 
     def open(self, path, flags):
+        """Open a file (basically just check if it exists)."""
         if not self._get_item(path):
             raise FuseOSError(ENOENT)
         return 0
 
     def release(self, path, fh):
+        """Called when a file is closed."""
         return 0
 
     def readlink(self, path):
-        raise FuseOSError(ENOENT)  # Assuming no symlinks in the JSON structure
+        """Read a symlink (not supported in this filesystem)."""
+        raise FuseOSError(ENOENT)
 
     def utimens(self, path, times=None):
-        return 0  # No-op for read-only filesystem
+        """Change file timestamps (no-op for read-only filesystem)."""
+        return 0
 
     def chmod(self, path, mode):
+        """Change file permissions (not allowed in read-only filesystem)."""
         raise FuseOSError(EROFS)
 
     def chown(self, path, uid, gid):
+        """Change file owner (not allowed in read-only filesystem)."""
         raise FuseOSError(EROFS)
 
     def mknod(self, path, mode, dev):
+        """Create a file node (not allowed in read-only filesystem)."""
         raise FuseOSError(EROFS)
 
     def mkdir(self, path, mode):
+        """Create a directory (not allowed in read-only filesystem)."""
         raise FuseOSError(EROFS)
 
     def unlink(self, path):
+        """Remove a file (not allowed in read-only filesystem)."""
         raise FuseOSError(EROFS)
 
     def rmdir(self, path):
+        """Remove a directory (not allowed in read-only filesystem)."""
         raise FuseOSError(EROFS)
 
     def symlink(self, name, target):
+        """Create a symbolic link (not allowed in read-only filesystem)."""
         raise FuseOSError(EROFS)
 
     def rename(self, old, new):
+        """Rename a file or directory (not allowed in read-only filesystem)."""
         raise FuseOSError(EROFS)
 
     def link(self, target, name):
+        """Create a hard link (not allowed in read-only filesystem)."""
         raise FuseOSError(EROFS)
 
     def truncate(self, path, length):
+        """Truncate a file (not allowed in read-only filesystem)."""
         raise FuseOSError(EROFS)
 
 
 def main():
+    """Main function to set up and run the FUSE filesystem."""
     parser = argparse.ArgumentParser(description="Mount a JSON file as a read-only filesystem")
     parser.add_argument("json_file", help="Path to the JSON file describing the filesystem")
     parser.add_argument("mount_point", help="Mount point for the filesystem")
@@ -534,14 +490,25 @@ def main():
     parser.add_argument(
         "--block-size",
         type=str,
-        default="1M",
-        help="Size of blocks for semi-random data generation (e.g., 1M, 2G, 512K). Default: 1M",
+        default="128K",
+        help="Size of blocks for semi-random data generation (e.g., 1M, 2G, 512K). Default: 128K",
     )
     parser.add_argument(
-        "--block-cache-size",
+        "--pre-generated-blocks",
         type=int,
-        default=1000,
-        help="Number of blocks to cache for semi-random data generation. Default: 1000",
+        default=100,
+        help="Number of pre-generated blocks to use for semi-random data generation. Default: 100",
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        help="Seed for random number generation. If not provided, current time will be used.",
+    )
+
+    parser.add_argument(
+        "--no-macos-cache-files",
+        action="store_true",
+        help="Do not add macOS control files to prevent caching",
     )
 
     # Add new mutually exclusive group for fill modes
@@ -584,7 +551,9 @@ def main():
             report=not args.report_stats,
             logger=logger,
             block_size=block_size,
-            block_cache_size=args.block_cache_size,
+            pre_generated_blocks=args.pre_generated_blocks,
+            seed=args.seed,
+            add_macos_cache_files=not args.no_macos_cache_files,
         ),
         args.mount_point,
         nothreads=True,

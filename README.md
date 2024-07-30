@@ -19,52 +19,75 @@ Large structures can be emulated, for testing software.
 - IOPS and data transfer reporting
 - Custom fill character for read operations or use semi random data
 
+### semi random algorithm
 
+
+- Deterministic: The same file and block number will always result in the same data being returned, providing consistency across reads and program runs.
+- Pseudo-random: While the data appears random, it's generated deterministically, allowing for reproducibility.
+- Memory-efficient: Instead of storing unique data for every possible file and offset, it reuses a limited number of pre-generated blocks.
+- Fast access: Once generated, block retrieval is very quick, involving only a hash calculation and array lookup.
+- Customizable: The number and size of pre-generated blocks can be adjusted to balance between memory usage and data variety
+ 
+
+
+- The block cache is generated at startup in the _generate_block_cache method
+- Creates a predetermined number of blocks (self.pre_generated_blocks).
+- Each block is of size self.block_size.
+- For each block, it generates random data using a linear congruential generator (LCG) algorithm.
+- The generated blocks are stored in a list (cache).
+
+- When reading data, the _generate_block_data method is used to select a block:
+- Takes a file path and block number as input.
+- Generates a hash using MD5 from the path and block number.
+- Uses this hash to deterministically select a block from the pre-generated cache.
+   
 ## Requirements
 
 - Python 3.6+
-- FUSE
+- FUSE using fuse-t see ** NOTE **
 - `fusepy` Python package
 
 ## Limitations
 
 The filesystem is read-only. Write operations will raise a "Read-only file system" error.
 The content of files is filled with a placeholder character (default is null byte), OR can be semi random data.
-** semi random is abot 100x slower ** at the moment.
-
+** now comparable in speed **
 Symlinks are not supported.
 
 ## usage :- 
 
-    usage: jsonfs.py [-h] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--rate-limit RATE_LIMIT] [--iop-limit IOP_LIMIT] [--report-stats]
-                    [--log-to-syslog] [--version] [--block-size BLOCK_SIZE] [--block-cache-size BLOCK_CACHE_SIZE]
-                    [--fill-char FILL_CHAR | --semi-random]
-                    json_file mount_point
+   usage: jsonfs.py [-h] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--rate-limit RATE_LIMIT] [--iop-limit IOP_LIMIT] [--report-stats]
+                 [--log-to-syslog] [--version] [--block-size BLOCK_SIZE] [--pre-generated-blocks PRE_GENERATED_BLOCKS] [--seed SEED]
+                 [--no-macos-cache-files] [--fill-char FILL_CHAR | --semi-random]
+                 json_file mount_point
 
-    Mount a JSON file as a read-only filesystem
+        Mount a JSON file as a read-only filesystem
 
-    positional arguments:
-    json_file             Path to the JSON file describing the filesystem
-    mount_point           Mount point for the filesystem
+        positional arguments:
+        json_file             Path to the JSON file describing the filesystem
+        mount_point           Mount point for the filesystem
 
-    options:
-    -h, --help            show this help message and exit
-    --log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}
-                            Set the logging level (default: INFO)
-    --rate-limit RATE_LIMIT
-                            Rate limit in seconds (e.g., 0.1 for 100ms delay)
-    --iop-limit IOP_LIMIT
-                            IOP limit per second (e.g., 100 for 100 IOPS)
-    --report-stats        Enable IOPS and data transfer reporting
-    --log-to-syslog       Log to syslog instead of stdout
-    --version             Show the version number and exit
-    --block-size BLOCK_SIZE
-                            Size of blocks for semi-random data generation (e.g., 1M, 2G, 512K). Default: 1M
-    --block-cache-size BLOCK_CACHE_SIZE
-                            Number of blocks to cache for semi-random data generation. Default: 1000
-    --fill-char FILL_CHAR
-                            Character to fill read data with (default: null byte)
-    --semi-random         Use semi-random data for file contents
+        options:
+        -h, --help            show this help message and exit
+        --log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}
+                                Set the logging level (default: INFO)
+        --rate-limit RATE_LIMIT
+                                Rate limit in seconds (e.g., 0.1 for 100ms delay)
+        --iop-limit IOP_LIMIT
+                                IOP limit per second (e.g., 100 for 100 IOPS)
+        --report-stats        Enable IOPS and data transfer reporting
+        --log-to-syslog       Log to syslog instead of stdout
+        --version             Show the version number and exit
+        --block-size BLOCK_SIZE
+                                Size of blocks for semi-random data generation (e.g., 1M, 2G, 512K). Default: 128K
+        --pre-generated-blocks PRE_GENERATED_BLOCKS
+                                Number of pre-generated blocks to use for semi-random data generation. Default: 100
+        --seed SEED           Seed for random number generation. If not provided, current time will be used.
+        --no-macos-cache-files
+                                Do not add macOS control files to prevent caching
+        --fill-char FILL_CHAR
+                                Character to fill read data with (default: null byte)
+        --semi-random         Use semi-random data for file contents
 
 
 ## example :-
