@@ -8,13 +8,14 @@ import random
 import sys
 import threading
 import time
+import datetime
 from errno import ENOENT, EROFS
 from functools import lru_cache
 from stat import S_IFDIR, S_IFREG
 
 from fuse import FUSE, FuseOSError, Operations
 
-__version__ = "1.3.0"
+__version__ = "1.5.0"
 
 # Constants for fill modes
 FILL_CHAR_MODE = "fill_char"
@@ -99,6 +100,9 @@ class JSONFileSystem(Operations):
         pre_generated_blocks=1000,
         seed=None,
         add_macos_cache_files=True,
+        uid=None,
+        gid=None,
+        mtime=None,
     ):
         self.json_data = json_data
         self.root = json_data[0]  # The first item should be the root directory
@@ -111,6 +115,9 @@ class JSONFileSystem(Operations):
         self.logger = logger or logging.getLogger(__name__)
         self.block_size = block_size
         self.pre_generated_blocks = pre_generated_blocks
+        self.uid = uid
+        self.gid = gid
+        self.mtime = mtime
 
         # Set up consistent random seed
         # see https://xkcd.com/221/
@@ -324,10 +331,12 @@ class JSONFileSystem(Operations):
             raise FuseOSError(ENOENT)
 
         st = {
-            "st_atime": self.now,
-            "st_ctime": self.now,
-            "st_mtime": self.now,
+            "st_atime": self.mtime,
+            "st_ctime": self.mtime,
+            "st_mtime": self.mtime,
             "st_nlink": 2,
+            "st_uid": self.uid,
+            "st_gid": self.gid,
         }
 
         if item["type"] == "directory":
@@ -339,7 +348,7 @@ class JSONFileSystem(Operations):
 
         self.logger.debug(f"getattr returned: {st}")
         return st
-
+    
     def readdir(self, path, fh):
         """Read the contents of a directory."""
         self._increment_stats()
@@ -504,11 +513,29 @@ def main():
         type=int,
         help="Seed for random number generation. If not provided, current time will be used.",
     )
-
     parser.add_argument(
         "--no-macos-cache-files",
         action="store_true",
         help="Do not add macOS control files to prevent caching",
+    )
+    parser.add_argument(
+        "--uid",
+        type=int,
+        default=os.getuid(),
+        help="Set the UID for all files and directories (default: current user's UID)",
+    )
+    parser.add_argument(
+        "--gid",
+        type=int,
+        default=os.getgid(),
+        help="Set the GID for all files and directories (default: current user's GID)",
+    )
+    parser.add_argument(
+        "--mtime",
+        type=str,
+        # https://xkcd.com/1140/
+        default="2017-10-17",
+        help="Set the modification time for all files and directories (default: 2017-10-17)",
     )
 
     # Add new mutually exclusive group for fill modes
@@ -538,6 +565,8 @@ def main():
     fill_char = args.fill_char if args.fill_char else "\0"
     block_size = parse_size(args.block_size)
 
+    mtime = datetime.datetime.strptime(args.mtime, "%Y-%m-%d").timestamp()
+
     with open(args.json_file, "r") as f:
         json_data = json.load(f)
 
@@ -554,6 +583,9 @@ def main():
             pre_generated_blocks=args.pre_generated_blocks,
             seed=args.seed,
             add_macos_cache_files=not args.no_macos_cache_files,
+            uid=args.uid,
+            gid=args.gid,
+            mtime=mtime,
         ),
         args.mount_point,
         nothreads=True,

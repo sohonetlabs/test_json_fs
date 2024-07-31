@@ -18,6 +18,7 @@ Large structures can be emulated, for testing software.
 - IOP (I/O operations) limiting
 - IOPS and data transfer reporting
 - Custom fill character for read operations or use semi random data
+- Has options to make the filesystem to be deterministic, so that between 2 runs the same data will be returned, diff'ing tars of the same fs between runs, returns no differnces
 
 ### semi random algorithm
 
@@ -56,38 +57,69 @@ Symlinks are not supported.
 
 ## usage :- 
 
-   usage: jsonfs.py [-h] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--rate-limit RATE_LIMIT] [--iop-limit IOP_LIMIT] [--report-stats]
-                 [--log-to-syslog] [--version] [--block-size BLOCK_SIZE] [--pre-generated-blocks PRE_GENERATED_BLOCKS] [--seed SEED]
-                 [--no-macos-cache-files] [--fill-char FILL_CHAR | --semi-random]
-                 json_file mount_point
+    usage: jsonfs.py [-h] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--rate-limit RATE_LIMIT] [--iop-limit IOP_LIMIT] [--report-stats]
+                    [--log-to-syslog] [--version] [--block-size BLOCK_SIZE] [--pre-generated-blocks PRE_GENERATED_BLOCKS] [--seed SEED]
+                    [--no-macos-cache-files] [--uid UID] [--gid GID] [--mtime MTIME] [--fill-char FILL_CHAR | --semi-random]
+                    json_file mount_point
 
-        Mount a JSON file as a read-only filesystem
+    Mount a JSON file as a read-only filesystem
 
-        positional arguments:
-        json_file             Path to the JSON file describing the filesystem
-        mount_point           Mount point for the filesystem
+    positional arguments:
+    json_file             Path to the JSON file describing the filesystem
+    mount_point           Mount point for the filesystem
 
-        options:
-        -h, --help            show this help message and exit
-        --log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}
-                                Set the logging level (default: INFO)
-        --rate-limit RATE_LIMIT
-                                Rate limit in seconds (e.g., 0.1 for 100ms delay)
-        --iop-limit IOP_LIMIT
-                                IOP limit per second (e.g., 100 for 100 IOPS)
-        --report-stats        Enable IOPS and data transfer reporting
-        --log-to-syslog       Log to syslog instead of stdout
-        --version             Show the version number and exit
-        --block-size BLOCK_SIZE
-                                Size of blocks for semi-random data generation (e.g., 1M, 2G, 512K). Default: 128K
-        --pre-generated-blocks PRE_GENERATED_BLOCKS
-                                Number of pre-generated blocks to use for semi-random data generation. Default: 100
-        --seed SEED           Seed for random number generation. If not provided, current time will be used.
-        --no-macos-cache-files
-                                Do not add macOS control files to prevent caching
-        --fill-char FILL_CHAR
-                                Character to fill read data with (default: null byte)
-        --semi-random         Use semi-random data for file contents
+    options:
+    -h, --help            show this help message and exit
+    --log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}
+                            Set the logging level (default: INFO)
+    --rate-limit RATE_LIMIT
+                            Rate limit in seconds (e.g., 0.1 for 100ms delay)
+    --iop-limit IOP_LIMIT
+                            IOP limit per second (e.g., 100 for 100 IOPS)
+    --report-stats        Enable IOPS and data transfer reporting
+    --log-to-syslog       Log to syslog instead of stdout
+    --version             Show the version number and exit
+    --block-size BLOCK_SIZE
+                            Size of blocks for semi-random data generation (e.g., 1M, 2G, 512K). Default: 128K
+    --pre-generated-blocks PRE_GENERATED_BLOCKS
+                            Number of pre-generated blocks to use for semi-random data generation. Default: 100
+    --seed SEED           Seed for random number generation. If not provided, current time will be used.
+    --no-macos-cache-files
+                            Do not add macOS control files to prevent caching
+    --uid UID             Set the UID for all files and directories (default: current user's UID)
+    --gid GID             Set the GID for all files and directories (default: current user's GID)
+    --mtime MTIME         Set the modification time for all files and directories (default: 2017-10-17)
+    --fill-char FILL_CHAR
+                            Character to fill read data with (default: null byte)
+    --semi-random         Use semi-random data for file contents
+
+## Example fs layouts in the examples directory
+
+### test.json
+
+Basic example
+
+### 32bit\_tests.json
+
+6 files to exercise signed and unsigned 32 bit file sizes
+
+### imdbfslayout.json.zip               
+
+large set of files from ai training set
+Total size: 265.65 GB (285244024192 bytes)
+Total files: 460723 
+
+### tartest\_test\_one\_dir.json
+
+For testing tar has one file per directory of sizes between 0 and 1024
+
+### tartest\_test\_dir\_spacing.json     
+
+For testing tar all the files in one directory of sizes between 0 and 1024
+
+### big\_list\_of\_naughty\_strings\_fs.json 
+
+Fuzzing systems with file names, based on https://github.com/minimaxir/big-list-of-naughty-strings/blob/master/blns.txt
 
 
 ## example :-
@@ -130,25 +162,28 @@ you will now have a filesystem mounted on ./jsonfs
 
 ##  ls -ltr ./jsonfs
     total 20
-    -r--r--r--  2 root  wheel  1024 29 Jul 14:05 filename000000009.txt
-    -r--r--r--  2 root  wheel  1024 29 Jul 14:05 filename000000008.txt
-    -r--r--r--  2 root  wheel  1024 29 Jul 14:05 filename000000007.txt
-    -r--r--r--  2 root  wheel  1024 29 Jul 14:05 filename000000006.txt
-    -r--r--r--  2 root  wheel  1024 29 Jul 14:05 filename000000005.txt
-    -r--r--r--  2 root  wheel  1024 29 Jul 14:05 filename000000004.txt
-    -r--r--r--  2 root  wheel  1024 29 Jul 14:05 filename000000003.txt
-    -r--r--r--  2 root  wheel  1024 29 Jul 14:05 filename000000002.txt
-    -r--r--r--  2 root  wheel  1024 29 Jul 14:05 filename000000001.txt
-    -r--r--r--  2 root  wheel  1024 29 Jul 14:05 filename000000000.txt
+    -r--r--r--  2 ben  staff   1.0K 17 Oct  2017 filename000000009.txt
+    -r--r--r--  2 ben  staff   1.0K 17 Oct  2017 filename000000008.txt
+    -r--r--r--  2 ben  staff   1.0K 17 Oct  2017 filename000000007.txt
+    -r--r--r--  2 ben  staff   1.0K 17 Oct  2017 filename000000006.txt
+    -r--r--r--  2 ben  staff   1.0K 17 Oct  2017 filename000000005.txt
+    -r--r--r--  2 ben  staff   1.0K 17 Oct  2017 filename000000004.txt
+    -r--r--r--  2 ben  staff   1.0K 17 Oct  2017 filename000000003.txt
+    -r--r--r--  2 ben  staff   1.0K 17 Oct  2017 filename000000002.txt
+    -r--r--r--  2 ben  staff   1.0K 17 Oct  2017 filename000000001.txt
+    -r--r--r--  2 ben  staff   1.0K 17 Oct  2017 filename000000000.txt
 
 ## NOTE  This script uses fuse-t which is a kext-less implementation of FUSE for macOS that uses NFS v4 local server instead of a kernel extension.
 
 see 
-https://www.fuse-t.org/
+[https://www.fuse-t.org/](https://www.fuse-t.org/)
 
 to install on macOS
-
-    brew install fuse-t
+	
+	brew tap macos-fuse-t/homebrew-cask
+	brew install fuse-t
+	brew install fuse-t-sshfs
+    
 
 You will need to modify pyfuse and patch the following line
 
