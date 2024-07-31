@@ -327,7 +327,11 @@ class JSONFileSystem(Operations):
         self.logger.debug(f"getattr called for path: {path}")
         item = self._get_item(path)
         if item is None:
-            self.logger.warning(f"Path not found: {path}")
+            # Path not found eg /.DS_Store
+            # Finder on macOS tries to access /.DS_Store to see if it exists
+            # Also /.hidden on Linux etc.
+            # This is not an error, but we do log it
+            self.logger.warning(f"Path not found (requested file is not in file system): {path}")
             raise FuseOSError(ENOENT)
 
         st = {
@@ -511,7 +515,8 @@ def main():
     parser.add_argument(
         "--seed",
         type=int,
-        help="Seed for random number generation. If not provided, current time will be used.",
+        # https://xkcd.com/221/
+        help="Seed for random number generation. If not provided, the random number 4 is used.",
     )
     parser.add_argument(
         "--no-macos-cache-files",

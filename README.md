@@ -83,7 +83,7 @@ Symlinks are not supported.
                             Size of blocks for semi-random data generation (e.g., 1M, 2G, 512K). Default: 128K
     --pre-generated-blocks PRE_GENERATED_BLOCKS
                             Number of pre-generated blocks to use for semi-random data generation. Default: 100
-    --seed SEED           Seed for random number generation. If not provided, current time will be used.
+    --seed SEED           Seed for random number generation. If not provided, the random number 4 is used.
     --no-macos-cache-files
                             Do not add macOS control files to prevent caching
     --uid UID             Set the UID for all files and directories (default: current user's UID)
