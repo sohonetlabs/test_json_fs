@@ -1,0 +1,14 @@
+[
+  {"type":"directory","name":"./","size":4096,"contents":[
+    {"type":"directory","name":"32_bit_BoundaryTestFiles","size":4096,"contents":[
+      {"type":"file","name":"signed_32int_max.bin","size":2147483647},
+      {"type":"file","name":"signed_int_max_minus_1.bin","size":2147483646},
+      {"type":"file","name":"signed_int_overflow.bin","size":2147483648},
+      {"type":"file","name":"unsigned_int_max.bin","size":4294967295},
+      {"type":"file","name":"unsigned_int_max_minus_1.bin","size":4294967294},
+      {"type":"file","name":"unsigned_int_overflow.bin","size":4294967296}
+    ]}
+  ]}
+,
+  {"type":"report","directories":2,"files":6}
+]
