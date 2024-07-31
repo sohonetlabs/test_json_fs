@@ -18,7 +18,7 @@ Large structures can be emulated, for testing software.
 - IOP (I/O operations) limiting
 - IOPS and data transfer reporting
 - Custom fill character for read operations or use semi random data
-- Has options to make the filesystem to be deterministic, so that between 2 runs the same data will be returned, diff'ing tars of the same fs between runs, returns no differnces
+- Has options to make the filesystem to be deterministic, so that between 2 runs the same data will be returned, diff'ing tars of the same fs between runs, returns no differences
 
 ### semi random algorithm
 
