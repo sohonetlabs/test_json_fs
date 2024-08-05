@@ -88,6 +88,19 @@ def parse_size(size):
     return int(size)
 
 
+def _unicode_to_named_entities(s):
+    # returns the unicode in the form 
+    # \N { LATIN SMALL LETTER E WITH ACUTE }
+    # original: caf\N{LATIN SMALL LETTER E WITH ACUTE}
+    return ''.join(
+        f'\\N{{{unicodedata.name(char, f'#{ord(char)}')}}}'
+        if not char.isprintable() or ord(char) > 127
+        else char
+        for char in s
+    )
+
+
+
 class JSONFileSystem(Operations):
     def __init__(
         self,
@@ -228,7 +241,7 @@ class JSONFileSystem(Operations):
             size_str = f"{humanize_bytes(item_size)} ({item_size} bytes)"
         else:
             size_str = str(item_size)
-        self.logger.debug(f"{indent}{item_name} ({item_type}, size: {size_str})")
+        self.logger.debug(f"{indent}{item_name} ({item_type}, size: {size_str} {_unicode_to_named_entities(item_name)})")
         if item_type == "directory" and "contents" in item:
             for child in item["contents"][:5]:  # Print only first 5 children
                 self._print_structure(child, depth + 1, max_depth)
@@ -241,11 +254,11 @@ class JSONFileSystem(Operations):
         item_name = item.get("name", "unnamed")
         if item_type == "file":
             size = item.get("size", 0)
-            self.logger.debug(f"File: {item_name}, Size: {humanize_bytes(size)} ({size} bytes)")
+            self.logger.debug(f"File: {item_name}, Size: {humanize_bytes(size)} ({size} bytes) {_unicode_to_named_entities(item_name)}")
             return size
         elif item_type == "directory":
             dir_size = sum(self._calculate_total_size(child) for child in item.get("contents", []))
-            self.logger.debug(f"Directory: {item_name}, Size: {humanize_bytes(dir_size)} ({dir_size} bytes)")
+            self.logger.debug(f"Directory: {item_name}, Size: {humanize_bytes(dir_size)} ({dir_size} bytes) {_unicode_to_named_entities(item_name)}")
             return dir_size
         else:
             self.logger.warning(f"Unknown item type: {item_type} for {item_name}")
@@ -307,7 +320,7 @@ class JSONFileSystem(Operations):
 
         item = self._get_item(path)
         if item is None or item["type"] != "file":
-            self.logger.warning(f"Invalid file path: {path}")
+            self.logger.warning(f"Invalid file path: {path} {_unicode_to_named_entities(path)}")
             raise FuseOSError(ENOENT)
 
         read_size = min(size, item.get("size", 0) - offset)
@@ -346,7 +359,7 @@ class JSONFileSystem(Operations):
         self.logger.debug(f"getattr called for path: {path}")
         item = self._get_item(path)
         if item is None:
-            self.logger.warning(f"Path not found (requested file is not in file system): {path}")
+            self.logger.warning(f"Path not found (requested file is not in file system): {path} {_unicode_to_named_entities(path)}")
             raise FuseOSError(ENOENT)
 
         st = {
@@ -374,7 +387,7 @@ class JSONFileSystem(Operations):
         self.logger.debug(f"readdir called for path: {path}")
         item = self._get_item(path)
         if item is None or item["type"] != "directory":
-            self.logger.warning(f"Invalid directory path: {path}")
+            self.logger.warning(f"Invalid directory path: {path} {_unicode_to_named_entities(path)}")
             raise FuseOSError(ENOENT)
 
         yield "."

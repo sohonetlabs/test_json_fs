@@ -19,6 +19,21 @@ Large structures can be emulated, for testing software.
 - IOPS and data transfer reporting
 - Custom fill character for read operations or use semi random data
 - Has options to make the filesystem to be deterministic, so that between 2 runs the same data will be returned, diff'ing tars of the same fs between runs, returns no differences
+- Unicode normalisation options :-( 
+    * NFC (Normalization Form Canonical Composition):
+        * This is the most commonly used form.
+        * It first decomposes characters, then recomposes them.
+        * It results in the shortest equivalent string.
+
+    * NFD (Normalization Form Canonical Decomposition):
+        * This form fully decomposes characters into their base forms and combining characters.
+        * It's useful for making text accent-insensitive, which can be beneficial for searching and sorting
+    
+    * Rabbit holes in this direction
+        * [https://eclecticlight.co/2021/05/08/explainer-unicode-normalization-and-apfs/](https://eclecticlight.co/2021/05/08/explainer-unicode-normalization-and-apfs/)
+        * [https://webtide.com/a-story-about-unix-unicode-java-filesystems-internationalization-and-normalization/](https://webtide.com/a-story-about-unix-unicode-java-filesystems-internationalization-and-normalization/)
+        * [https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file](https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file)
+
 
 ### semi random algorithm
 
@@ -59,7 +74,8 @@ Symlinks are not supported.
 
     usage: jsonfs.py [-h] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--rate-limit RATE_LIMIT] [--iop-limit IOP_LIMIT] [--report-stats]
                     [--log-to-syslog] [--version] [--block-size BLOCK_SIZE] [--pre-generated-blocks PRE_GENERATED_BLOCKS] [--seed SEED]
-                    [--no-macos-cache-files] [--uid UID] [--gid GID] [--mtime MTIME] [--fill-char FILL_CHAR | --semi-random]
+                    [--no-macos-cache-files] [--uid UID] [--gid GID] [--mtime MTIME] [--unicode-normalization {NFC,NFD,none}]
+                    [--fill-char FILL_CHAR | --semi-random]
                     json_file mount_point
 
     Mount a JSON file as a read-only filesystem
@@ -89,6 +105,8 @@ Symlinks are not supported.
     --uid UID             Set the UID for all files and directories (default: current user's UID)
     --gid GID             Set the GID for all files and directories (default: current user's GID)
     --mtime MTIME         Set the modification time for all files and directories (default: 2017-10-17)
+    --unicode-normalization {NFC,NFD,none}
+                            Unicode normalization form to use (default: NFD, 'none' for no normalization)
     --fill-char FILL_CHAR
                             Character to fill read data with (default: null byte)
     --semi-random         Use semi-random data for file contents
