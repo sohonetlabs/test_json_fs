@@ -2,7 +2,6 @@ import argparse
 import hashlib
 import json
 import logging
-import os
 import platform
 import random
 import sys
@@ -12,10 +11,13 @@ import datetime
 from errno import ENOENT, EROFS
 from functools import lru_cache
 from stat import S_IFDIR, S_IFREG
+from pathlib import Path
+import os
+import unicodedata
 
 from fuse import FUSE, FuseOSError, Operations
 
-__version__ = "1.5.0"
+__version__ = "1.5.1"
 
 # Constants for fill modes
 FILL_CHAR_MODE = "fill_char"
@@ -120,7 +122,6 @@ class JSONFileSystem(Operations):
         self.mtime = mtime
 
         # Set up consistent random seed
-        # see https://xkcd.com/221/
         self.seed = seed if seed is not None else int(4)
         self.random = random.Random(self.seed)
         self.logger.info(f"Using seed: {self.seed}")
@@ -258,25 +259,39 @@ class JSONFileSystem(Operations):
             return sum(self._count_files(child) for child in item.get("contents", []))
         return 0
 
-    def _build_path_map(self, item, current_path="/"):
+    def _build_path_map(self, item, current_path=Path("/")):
         """Build a flat dictionary mapping paths to items for faster lookups."""
-        path_map = {current_path: item}
+        normalized_path = self._sanitize_path(current_path)
+        path_map = {normalized_path: item}
         if item["type"] == "directory":
             for child in item.get("contents", []):
-                child_path = os.path.join(current_path, child["name"])
+                child_path = current_path / child["name"]
                 path_map.update(self._build_path_map(child, child_path))
         return path_map
+
+    def _sanitize_path(self, path):
+        """Sanitize and normalize the path."""
+        # Normalize Unicode form
+        path = unicodedata.normalize('NFC', str(path))
+        # Remove null bytes
+        path = path.replace('\0', '')
+        # Resolve path to prevent traversal attacks
+        path = os.path.normpath('/' + path).lstrip('/')
+        return path
 
     @lru_cache(maxsize=1000)
     def _get_item(self, path):
         """Get an item from the path map, with caching for performance."""
-        return self.path_map.get(path)
+        normalized_path = self._sanitize_path(path)
+        return self.path_map.get(normalized_path)
 
     def _generate_block_data(self, path, block):
         """
         Retrieve pre-generated data for a specific block of a file.
         """
-        hash_value = hashlib.md5((path + str(block)).encode()).digest()
+        normalized_path = self._sanitize_path(path)
+        combined = normalized_path + '\x01' + str(block)  # Use \x01 instead of \0 as separator
+        hash_value = hashlib.md5(combined.encode('utf-8')).digest()
         cache_index = int.from_bytes(hash_value, byteorder="big") % self.pre_generated_blocks
         return self.block_cache[cache_index]
 
@@ -327,10 +342,6 @@ class JSONFileSystem(Operations):
         self.logger.debug(f"getattr called for path: {path}")
         item = self._get_item(path)
         if item is None:
-            # Path not found eg /.DS_Store
-            # Finder on macOS tries to access /.DS_Store to see if it exists
-            # Also /.hidden on Linux etc.
-            # This is not an error, but we do log it
             self.logger.warning(f"Path not found (requested file is not in file system): {path}")
             raise FuseOSError(ENOENT)
 
@@ -464,8 +475,8 @@ class JSONFileSystem(Operations):
 def main():
     """Main function to set up and run the FUSE filesystem."""
     parser = argparse.ArgumentParser(description="Mount a JSON file as a read-only filesystem")
-    parser.add_argument("json_file", help="Path to the JSON file describing the filesystem")
-    parser.add_argument("mount_point", help="Mount point for the filesystem")
+    parser.add_argument("json_file", type=Path, help="Path to the JSON file describing the filesystem")
+    parser.add_argument("mount_point", type=Path, help="Mount point for the filesystem")
     parser.add_argument(
         "--log-level",
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
@@ -515,7 +526,6 @@ def main():
     parser.add_argument(
         "--seed",
         type=int,
-        # https://xkcd.com/221/
         help="Seed for random number generation. If not provided, the random number 4 is used.",
     )
     parser.add_argument(
@@ -538,7 +548,6 @@ def main():
     parser.add_argument(
         "--mtime",
         type=str,
-        # https://xkcd.com/1140/
         default="2017-10-17",
         help="Set the modification time for all files and directories (default: 2017-10-17)",
     )
@@ -572,7 +581,7 @@ def main():
 
     mtime = datetime.datetime.strptime(args.mtime, "%Y-%m-%d").timestamp()
 
-    with open(args.json_file, "r") as f:
+    with args.json_file.open("r") as f:
         json_data = json.load(f)
 
     FUSE(
@@ -592,7 +601,7 @@ def main():
             gid=args.gid,
             mtime=mtime,
         ),
-        args.mount_point,
+        str(args.mount_point),
         nothreads=True,
         foreground=True,
     )
