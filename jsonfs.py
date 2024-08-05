@@ -105,6 +105,7 @@ class JSONFileSystem(Operations):
         uid=None,
         gid=None,
         mtime=None,
+        unicode_normalization="NFD",
     ):
         self.json_data = json_data
         self.root = json_data[0]  # The first item should be the root directory
@@ -120,6 +121,7 @@ class JSONFileSystem(Operations):
         self.uid = uid
         self.gid = gid
         self.mtime = mtime
+        self.unicode_normalization = unicode_normalization
 
         # Set up consistent random seed
         self.seed = seed if seed is not None else int(4)
@@ -271,13 +273,15 @@ class JSONFileSystem(Operations):
 
     def _sanitize_path(self, path):
         """Sanitize and normalize the path."""
-        # Normalize Unicode form
-        path = unicodedata.normalize('NFC', str(path))
+        path_str = str(path)
+        # Apply Unicode normalization if specified
+        if self.unicode_normalization != "none":
+            path_str = unicodedata.normalize(self.unicode_normalization, path_str)
         # Remove null bytes
-        path = path.replace('\0', '')
+        path_str = path_str.replace('\0', '')
         # Resolve path to prevent traversal attacks
-        path = os.path.normpath('/' + path).lstrip('/')
-        return path
+        path_str = os.path.normpath('/' + path_str).lstrip('/')
+        return path_str
 
     @lru_cache(maxsize=1000)
     def _get_item(self, path):
@@ -551,6 +555,12 @@ def main():
         default="2017-10-17",
         help="Set the modification time for all files and directories (default: 2017-10-17)",
     )
+    parser.add_argument(
+        "--unicode-normalization",
+        choices=["NFC", "NFD", "none"],
+        default="NFD",
+        help="Unicode normalization form to use (default: NFD, 'none' for no normalization)",
+    )
 
     # Add new mutually exclusive group for fill modes
     fill_mode_group = parser.add_mutually_exclusive_group()
@@ -600,6 +610,7 @@ def main():
             uid=args.uid,
             gid=args.gid,
             mtime=mtime,
+            unicode_normalization=args.unicode_normalization,
         ),
         str(args.mount_point),
         nothreads=True,
