@@ -2,7 +2,6 @@ import argparse
 import hashlib
 import json
 import logging
-import os
 import platform
 import random
 import sys
@@ -12,10 +11,13 @@ import datetime
 from errno import ENOENT, EROFS
 from functools import lru_cache
 from stat import S_IFDIR, S_IFREG
+from pathlib import Path
+import os
+import unicodedata
 
 from fuse import FUSE, FuseOSError, Operations
 
-__version__ = "1.5.0"
+__version__ = "1.5.1"
 
 # Constants for fill modes
 FILL_CHAR_MODE = "fill_char"
@@ -86,6 +88,19 @@ def parse_size(size):
     return int(size)
 
 
+def _unicode_to_named_entities(s):
+    # returns the unicode in the form 
+    # \N { LATIN SMALL LETTER E WITH ACUTE }
+    # original: caf\N{LATIN SMALL LETTER E WITH ACUTE}
+    return ''.join(
+        f'\\N{{{unicodedata.name(char, f'#{ord(char)}')}}}'
+        if not char.isprintable() or ord(char) > 127
+        else char
+        for char in s
+    )
+
+
+
 class JSONFileSystem(Operations):
     def __init__(
         self,
@@ -103,6 +118,7 @@ class JSONFileSystem(Operations):
         uid=None,
         gid=None,
         mtime=None,
+        unicode_normalization="NFD",
     ):
         self.json_data = json_data
         self.root = json_data[0]  # The first item should be the root directory
@@ -118,9 +134,9 @@ class JSONFileSystem(Operations):
         self.uid = uid
         self.gid = gid
         self.mtime = mtime
+        self.unicode_normalization = unicode_normalization
 
         # Set up consistent random seed
-        # see https://xkcd.com/221/
         self.seed = seed if seed is not None else int(4)
         self.random = random.Random(self.seed)
         self.logger.info(f"Using seed: {self.seed}")
@@ -225,7 +241,7 @@ class JSONFileSystem(Operations):
             size_str = f"{humanize_bytes(item_size)} ({item_size} bytes)"
         else:
             size_str = str(item_size)
-        self.logger.debug(f"{indent}{item_name} ({item_type}, size: {size_str})")
+        self.logger.debug(f"{indent}{item_name} ({item_type}, size: {size_str} {_unicode_to_named_entities(item_name)})")
         if item_type == "directory" and "contents" in item:
             for child in item["contents"][:5]:  # Print only first 5 children
                 self._print_structure(child, depth + 1, max_depth)
@@ -238,11 +254,11 @@ class JSONFileSystem(Operations):
         item_name = item.get("name", "unnamed")
         if item_type == "file":
             size = item.get("size", 0)
-            self.logger.debug(f"File: {item_name}, Size: {humanize_bytes(size)} ({size} bytes)")
+            self.logger.debug(f"File: {item_name}, Size: {humanize_bytes(size)} ({size} bytes) {_unicode_to_named_entities(item_name)}")
             return size
         elif item_type == "directory":
             dir_size = sum(self._calculate_total_size(child) for child in item.get("contents", []))
-            self.logger.debug(f"Directory: {item_name}, Size: {humanize_bytes(dir_size)} ({dir_size} bytes)")
+            self.logger.debug(f"Directory: {item_name}, Size: {humanize_bytes(dir_size)} ({dir_size} bytes) {_unicode_to_named_entities(item_name)}")
             return dir_size
         else:
             self.logger.warning(f"Unknown item type: {item_type} for {item_name}")
@@ -258,25 +274,41 @@ class JSONFileSystem(Operations):
             return sum(self._count_files(child) for child in item.get("contents", []))
         return 0
 
-    def _build_path_map(self, item, current_path="/"):
+    def _build_path_map(self, item, current_path=Path("/")):
         """Build a flat dictionary mapping paths to items for faster lookups."""
-        path_map = {current_path: item}
+        normalized_path = self._sanitize_path(current_path)
+        path_map = {normalized_path: item}
         if item["type"] == "directory":
             for child in item.get("contents", []):
-                child_path = os.path.join(current_path, child["name"])
+                child_path = current_path / child["name"]
                 path_map.update(self._build_path_map(child, child_path))
         return path_map
+
+    def _sanitize_path(self, path):
+        """Sanitize and normalize the path."""
+        path_str = str(path)
+        # Apply Unicode normalization if specified
+        if self.unicode_normalization != "none":
+            path_str = unicodedata.normalize(self.unicode_normalization, path_str)
+        # Remove null bytes
+        path_str = path_str.replace('\0', '')
+        # Resolve path to prevent traversal attacks
+        path_str = os.path.normpath('/' + path_str).lstrip('/')
+        return path_str
 
     @lru_cache(maxsize=1000)
     def _get_item(self, path):
         """Get an item from the path map, with caching for performance."""
-        return self.path_map.get(path)
+        normalized_path = self._sanitize_path(path)
+        return self.path_map.get(normalized_path)
 
     def _generate_block_data(self, path, block):
         """
         Retrieve pre-generated data for a specific block of a file.
         """
-        hash_value = hashlib.md5((path + str(block)).encode()).digest()
+        normalized_path = self._sanitize_path(path)
+        combined = normalized_path + '\x01' + str(block)  # Use \x01 instead of \0 as separator
+        hash_value = hashlib.md5(combined.encode('utf-8')).digest()
         cache_index = int.from_bytes(hash_value, byteorder="big") % self.pre_generated_blocks
         return self.block_cache[cache_index]
 
@@ -288,7 +320,7 @@ class JSONFileSystem(Operations):
 
         item = self._get_item(path)
         if item is None or item["type"] != "file":
-            self.logger.warning(f"Invalid file path: {path}")
+            self.logger.warning(f"Invalid file path: {path} {_unicode_to_named_entities(path)}")
             raise FuseOSError(ENOENT)
 
         read_size = min(size, item.get("size", 0) - offset)
@@ -327,11 +359,7 @@ class JSONFileSystem(Operations):
         self.logger.debug(f"getattr called for path: {path}")
         item = self._get_item(path)
         if item is None:
-            # Path not found eg /.DS_Store
-            # Finder on macOS tries to access /.DS_Store to see if it exists
-            # Also /.hidden on Linux etc.
-            # This is not an error, but we do log it
-            self.logger.warning(f"Path not found (requested file is not in file system): {path}")
+            self.logger.warning(f"Path not found (requested file is not in file system): {path} {_unicode_to_named_entities(path)}")
             raise FuseOSError(ENOENT)
 
         st = {
@@ -359,7 +387,7 @@ class JSONFileSystem(Operations):
         self.logger.debug(f"readdir called for path: {path}")
         item = self._get_item(path)
         if item is None or item["type"] != "directory":
-            self.logger.warning(f"Invalid directory path: {path}")
+            self.logger.warning(f"Invalid directory path: {path} {_unicode_to_named_entities(path)}")
             raise FuseOSError(ENOENT)
 
         yield "."
@@ -464,8 +492,8 @@ class JSONFileSystem(Operations):
 def main():
     """Main function to set up and run the FUSE filesystem."""
     parser = argparse.ArgumentParser(description="Mount a JSON file as a read-only filesystem")
-    parser.add_argument("json_file", help="Path to the JSON file describing the filesystem")
-    parser.add_argument("mount_point", help="Mount point for the filesystem")
+    parser.add_argument("json_file", type=Path, help="Path to the JSON file describing the filesystem")
+    parser.add_argument("mount_point", type=Path, help="Mount point for the filesystem")
     parser.add_argument(
         "--log-level",
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
@@ -515,7 +543,6 @@ def main():
     parser.add_argument(
         "--seed",
         type=int,
-        # https://xkcd.com/221/
         help="Seed for random number generation. If not provided, the random number 4 is used.",
     )
     parser.add_argument(
@@ -538,9 +565,14 @@ def main():
     parser.add_argument(
         "--mtime",
         type=str,
-        # https://xkcd.com/1140/
         default="2017-10-17",
         help="Set the modification time for all files and directories (default: 2017-10-17)",
+    )
+    parser.add_argument(
+        "--unicode-normalization",
+        choices=["NFC", "NFD", "none"],
+        default="NFD",
+        help="Unicode normalization form to use (default: NFD, 'none' for no normalization)",
     )
 
     # Add new mutually exclusive group for fill modes
@@ -572,7 +604,7 @@ def main():
 
     mtime = datetime.datetime.strptime(args.mtime, "%Y-%m-%d").timestamp()
 
-    with open(args.json_file, "r") as f:
+    with args.json_file.open("r") as f:
         json_data = json.load(f)
 
     FUSE(
@@ -591,8 +623,9 @@ def main():
             uid=args.uid,
             gid=args.gid,
             mtime=mtime,
+            unicode_normalization=args.unicode_normalization,
         ),
-        args.mount_point,
+        str(args.mount_point),
         nothreads=True,
         foreground=True,
     )
