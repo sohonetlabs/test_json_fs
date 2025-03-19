@@ -17,7 +17,7 @@ import unicodedata
 
 from fuse import FUSE, FuseOSError, Operations
 
-__version__ = "1.5.1"
+__version__ = "1.6.1"
 
 # Constants for fill modes
 FILL_CHAR_MODE = "fill_char"
@@ -89,16 +89,13 @@ def parse_size(size):
 
 
 def _unicode_to_named_entities(s):
-    # returns the unicode in the form 
+    # returns the unicode in the form
     # \N { LATIN SMALL LETTER E WITH ACUTE }
     # original: caf\N{LATIN SMALL LETTER E WITH ACUTE}
-    return ''.join(
-        f'\\N{{{unicodedata.name(char, f'#{ord(char)}')}}}'
-        if not char.isprintable() or ord(char) > 127
-        else char
+    return "".join(
+        (f"\\N{{{unicodedata.name(char, f'#{ord(char)}')}}}" if not char.isprintable() or ord(char) > 127 else char)
         for char in s
     )
-
 
 
 class JSONFileSystem(Operations):
@@ -241,7 +238,9 @@ class JSONFileSystem(Operations):
             size_str = f"{humanize_bytes(item_size)} ({item_size} bytes)"
         else:
             size_str = str(item_size)
-        self.logger.debug(f"{indent}{item_name} ({item_type}, size: {size_str} {_unicode_to_named_entities(item_name)})")
+        self.logger.debug(
+            f"{indent}{item_name} ({item_type}, size: {size_str} {_unicode_to_named_entities(item_name)})"
+        )
         if item_type == "directory" and "contents" in item:
             for child in item["contents"][:5]:  # Print only first 5 children
                 self._print_structure(child, depth + 1, max_depth)
@@ -254,11 +253,15 @@ class JSONFileSystem(Operations):
         item_name = item.get("name", "unnamed")
         if item_type == "file":
             size = item.get("size", 0)
-            self.logger.debug(f"File: {item_name}, Size: {humanize_bytes(size)} ({size} bytes) {_unicode_to_named_entities(item_name)}")
+            self.logger.debug(
+                f"File: {item_name}, Size: {humanize_bytes(size)} ({size} bytes) {_unicode_to_named_entities(item_name)}"
+            )
             return size
         elif item_type == "directory":
             dir_size = sum(self._calculate_total_size(child) for child in item.get("contents", []))
-            self.logger.debug(f"Directory: {item_name}, Size: {humanize_bytes(dir_size)} ({dir_size} bytes) {_unicode_to_named_entities(item_name)}")
+            self.logger.debug(
+                f"Directory: {item_name}, Size: {humanize_bytes(dir_size)} ({dir_size} bytes) {_unicode_to_named_entities(item_name)}"
+            )
             return dir_size
         else:
             self.logger.warning(f"Unknown item type: {item_type} for {item_name}")
@@ -291,9 +294,9 @@ class JSONFileSystem(Operations):
         if self.unicode_normalization != "none":
             path_str = unicodedata.normalize(self.unicode_normalization, path_str)
         # Remove null bytes
-        path_str = path_str.replace('\0', '')
+        path_str = path_str.replace("\0", "")
         # Resolve path to prevent traversal attacks
-        path_str = os.path.normpath('/' + path_str).lstrip('/')
+        path_str = os.path.normpath("/" + path_str).lstrip("/")
         return path_str
 
     @lru_cache(maxsize=1000)
@@ -307,8 +310,8 @@ class JSONFileSystem(Operations):
         Retrieve pre-generated data for a specific block of a file.
         """
         normalized_path = self._sanitize_path(path)
-        combined = normalized_path + '\x01' + str(block)  # Use \x01 instead of \0 as separator
-        hash_value = hashlib.md5(combined.encode('utf-8')).digest()
+        combined = normalized_path + "\x01" + str(block)  # Use \x01 instead of \0 as separator
+        hash_value = hashlib.md5(combined.encode("utf-8")).digest()
         cache_index = int.from_bytes(hash_value, byteorder="big") % self.pre_generated_blocks
         return self.block_cache[cache_index]
 
@@ -359,7 +362,9 @@ class JSONFileSystem(Operations):
         self.logger.debug(f"getattr called for path: {path}")
         item = self._get_item(path)
         if item is None:
-            self.logger.warning(f"Path not found (requested file is not in file system): {path} {_unicode_to_named_entities(path)}")
+            self.logger.warning(
+                f"Path not found (requested file is not in file system): {path} {_unicode_to_named_entities(path)}"
+            )
             raise FuseOSError(ENOENT)
 
         st = {
@@ -380,7 +385,7 @@ class JSONFileSystem(Operations):
 
         self.logger.debug(f"getattr returned: {st}")
         return st
-    
+
     def readdir(self, path, fh):
         """Read the contents of a directory."""
         self._increment_stats()
@@ -570,9 +575,10 @@ def main():
     )
     parser.add_argument(
         "--unicode-normalization",
-        choices=["NFC", "NFD", "none"],
+        choices=["NFC", "NFD", "NFKC", "NFKD", "none"],
         default="NFD",
-        help="Unicode normalization form to use (default: NFD, 'none' for no normalization)",
+        help="Unicode normalization form to use (default: NFD, also supports NFC, NFKC, NFKD, or 'none' for no normalization) "
+        "see https://www.unicode.org/faq/normalization.html for more information",
     )
 
     # Add new mutually exclusive group for fill modes

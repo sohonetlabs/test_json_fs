@@ -204,6 +204,8 @@ to install on macOS
     
 
 You will need to modify pyfuse and patch the following line
+which in my case is located <virtual env>/lib/python3.13/site-packages/fuse.py line 90
+
 
             _libfuse_path = (find_library('fuse4x') or find_library('osxfuse') or
                          find_library('fuse'))
