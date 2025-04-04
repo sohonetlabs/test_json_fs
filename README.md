@@ -41,6 +41,11 @@ Large structures can be emulated, for testing software.
         * [https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file](https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file)
 
 
+### Victims/CVEs ###
+Victims claimed by Big list of naughty strings fs
+
+- [CVE-2024-44201](https://app.opencve.io/cve/CVE-2024-44201)  Processing a malicious crafted file may lead to a denial-of-service. :-) in libarchive reported to Apple, and fixed 
+
 ### semi random algorithm
 
 
