@@ -15,9 +15,25 @@ from pathlib import Path
 import os
 import unicodedata
 
+# only do the following if we are running on macOS
+if sys.platform == "darwin":
+    # Set the FUSE_LIBRARY_PATH environment variable before importing fuse
+    # This environment variable is checked in fuse.py before looking for libraries
+    fuse_lib_path = os.environ.get("FUSE_LIBRARY_PATH")
+    if not fuse_lib_path:
+        # Try to find libfuse-t or other libraries
+        from ctypes.util import find_library
+
+        for lib_name in ["fuse4x", "osxfuse", "fuse", "libfuse-t"]:
+            lib_path = find_library(lib_name)
+            if lib_path:
+                os.environ["FUSE_LIBRARY_PATH"] = lib_path
+                print(f"Found FUSE library: {lib_name} at {lib_path}")
+                break
+
 from fuse import FUSE, FuseOSError, Operations
 
-__version__ = "1.6.1"
+__version__ = "1.6.2"
 
 # Constants for fill modes
 FILL_CHAR_MODE = "fill_char"
@@ -220,9 +236,7 @@ class JSONFileSystem(Operations):
         while True:
             time.sleep(1)  # Report every second
             with self.stats_lock:
-                print(
-                    f"IOPS: {self.iops_count}, Data transferred: {humanize_bytes(self.bytes_read)}/s ({self.bytes_read} B/s)"
-                )
+                print(f"IOPS: {self.iops_count}, Data transferred: {humanize_bytes(self.bytes_read)}/s ({self.bytes_read} B/s)")
                 self.iops_count = 0
                 self.bytes_read = 0
 
@@ -238,9 +252,7 @@ class JSONFileSystem(Operations):
             size_str = f"{humanize_bytes(item_size)} ({item_size} bytes)"
         else:
             size_str = str(item_size)
-        self.logger.debug(
-            f"{indent}{item_name} ({item_type}, size: {size_str} {_unicode_to_named_entities(item_name)})"
-        )
+        self.logger.debug(f"{indent}{item_name} ({item_type}, size: {size_str} {_unicode_to_named_entities(item_name)})")
         if item_type == "directory" and "contents" in item:
             for child in item["contents"][:5]:  # Print only first 5 children
                 self._print_structure(child, depth + 1, max_depth)

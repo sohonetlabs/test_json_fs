@@ -8,7 +8,7 @@ This allows massive file systems to be mounted and used with out taking up any d
 
 Large structures can be emulated, for testing software.
 
-## SEE NOTE
+## SEE NOTE for Macos
 
 ## Features
 
@@ -213,6 +213,7 @@ to install on macOS
 	brew install fuse-t
 	brew install fuse-t-sshfs
     
+**Now patched to so we do not need to do this on Macos**
 
 You will need to modify pyfuse and patch the following line
 which in my case is located <virtual env>/lib/python3.13/site-packages/fuse.py line 90
