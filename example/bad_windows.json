@@ -1,0 +1,733 @@
+[
+  {
+    "type": "directory",
+    "name": "invalid_windows_filenames",
+    "size": 0,
+    "contents": [
+      {
+        "type": "file",
+        "name": "CON",
+        "size": 0,
+        "invalid_reason": "Reserved device name (uppercase)"
+      },
+      {
+        "type": "file",
+        "name": "con",
+        "size": 0,
+        "invalid_reason": "Reserved device name (lowercase)"
+      },
+      {
+        "type": "file",
+        "name": "Con",
+        "size": 0,
+        "invalid_reason": "Reserved device name (mixed case)"
+      },
+      {
+        "type": "file",
+        "name": "PRN",
+        "size": 0,
+        "invalid_reason": "Reserved device name (uppercase)"
+      },
+      {
+        "type": "file",
+        "name": "prn",
+        "size": 0,
+        "invalid_reason": "Reserved device name (lowercase)"
+      },
+      {
+        "type": "file",
+        "name": "Prn",
+        "size": 0,
+        "invalid_reason": "Reserved device name (mixed case)"
+      },
+      {
+        "type": "file",
+        "name": "AUX",
+        "size": 0,
+        "invalid_reason": "Reserved device name (uppercase)"
+      },
+      {
+        "type": "file",
+        "name": "aux",
+        "size": 0,
+        "invalid_reason": "Reserved device name (lowercase)"
+      },
+      {
+        "type": "file",
+        "name": "Aux",
+        "size": 0,
+        "invalid_reason": "Reserved device name (mixed case)"
+      },
+      {
+        "type": "file",
+        "name": "NUL",
+        "size": 0,
+        "invalid_reason": "Reserved device name (uppercase)"
+      },
+      {
+        "type": "file",
+        "name": "nul",
+        "size": 0,
+        "invalid_reason": "Reserved device name (lowercase)"
+      },
+      {
+        "type": "file",
+        "name": "Nul",
+        "size": 0,
+        "invalid_reason": "Reserved device name (mixed case)"
+      },
+      {
+        "type": "file",
+        "name": "COM1",
+        "size": 0,
+        "invalid_reason": "Reserved device name (uppercase)"
+      },
+      {
+        "type": "file",
+        "name": "com1",
+        "size": 0,
+        "invalid_reason": "Reserved device name (lowercase)"
+      },
+      {
+        "type": "file",
+        "name": "Com1",
+        "size": 0,
+        "invalid_reason": "Reserved device name (mixed case)"
+      },
+      {
+        "type": "file",
+        "name": "COM¹",
+        "size": 0,
+        "invalid_reason": "Reserved device name with superscript (uppercase)"
+      },
+      {
+        "type": "file",
+        "name": "com¹",
+        "size": 0,
+        "invalid_reason": "Reserved device name with superscript (lowercase)"
+      },
+      {
+        "type": "file",
+        "name": "Com¹",
+        "size": 0,
+        "invalid_reason": "Reserved device name with superscript (mixed case)"
+      },
+      {
+        "type": "file",
+        "name": "COM₁",
+        "size": 0,
+        "invalid_reason": "Reserved device name with subscript (uppercase)"
+      },
+      {
+        "type": "file",
+        "name": "com₁",
+        "size": 0,
+        "invalid_reason": "Reserved device name with subscript (lowercase)"
+      },
+      {
+        "type": "file",
+        "name": "Com₁",
+        "size": 0,
+        "invalid_reason": "Reserved device name with subscript (mixed case)"
+      },
+      {
+        "type": "file",
+        "name": "LPT2",
+        "size": 0,
+        "invalid_reason": "Reserved device name (uppercase)"
+      },
+      {
+        "type": "file",
+        "name": "lpt2",
+        "size": 0,
+        "invalid_reason": "Reserved device name (lowercase)"
+      },
+      {
+        "type": "file",
+        "name": "Lpt2",
+        "size": 0,
+        "invalid_reason": "Reserved device name (mixed case)"
+      },
+      {
+        "type": "file",
+        "name": "LPT²",
+        "size": 0,
+        "invalid_reason": "Reserved device name with superscript (uppercase)"
+      },
+      {
+        "type": "file",
+        "name": "lpt²",
+        "size": 0,
+        "invalid_reason": "Reserved device name with superscript (lowercase)"
+      },
+      {
+        "type": "file",
+        "name": "Lpt²",
+        "size": 0,
+        "invalid_reason": "Reserved device name with superscript (mixed case)"
+      },
+      {
+        "type": "file",
+        "name": "LPT₂",
+        "size": 0,
+        "invalid_reason": "Reserved device name with subscript (uppercase)"
+      },
+      {
+        "type": "file",
+        "name": "lpt₂",
+        "size": 0,
+        "invalid_reason": "Reserved device name with subscript (lowercase)"
+      },
+      {
+        "type": "file",
+        "name": "Lpt₂",
+        "size": 0,
+        "invalid_reason": "Reserved device name with subscript (mixed case)"
+      },
+      {
+        "type": "file",
+        "name": "CON¹",
+        "size": 0,
+        "invalid_reason": "Reserved device name with superscript (uppercase)"
+      },
+      {
+        "type": "file",
+        "name": "con¹",
+        "size": 0,
+        "invalid_reason": "Reserved device name with superscript (lowercase)"
+      },
+      {
+        "type": "file",
+        "name": "Con¹",
+        "size": 0,
+        "invalid_reason": "Reserved device name with superscript (mixed case)"
+      },
+      {
+        "type": "file",
+        "name": "CON₁",
+        "size": 0,
+        "invalid_reason": "Reserved device name with subscript (uppercase)"
+      },
+      {
+        "type": "file",
+        "name": "con₁",
+        "size": 0,
+        "invalid_reason": "Reserved device name with subscript (lowercase)"
+      },
+      {
+        "type": "file",
+        "name": "Con₁",
+        "size": 0,
+        "invalid_reason": "Reserved device name with subscript (mixed case)"
+      },
+      {
+        "type": "file",
+        "name": "COM2",
+        "size": 0,
+        "invalid_reason": "Reserved device name (uppercase)"
+      },
+      {
+        "type": "file",
+        "name": "com2",
+        "size": 0,
+        "invalid_reason": "Reserved device name (lowercase)"
+      },
+      {
+        "type": "file",
+        "name": "Com2",
+        "size": 0,
+        "invalid_reason": "Reserved device name (mixed case)"
+      },
+      {
+        "type": "file",
+        "name": "COM²",
+        "size": 0,
+        "invalid_reason": "Reserved device name with superscript (uppercase)"
+      },
+      {
+        "type": "file",
+        "name": "com²",
+        "size": 0,
+        "invalid_reason": "Reserved device name with superscript (lowercase)"
+      },
+      {
+        "type": "file",
+        "name": "Com²",
+        "size": 0,
+        "invalid_reason": "Reserved device name with superscript (mixed case)"
+      },
+      {
+        "type": "file",
+        "name": "COM₂",
+        "size": 0,
+        "invalid_reason": "Reserved device name with subscript (uppercase)"
+      },
+      {
+        "type": "file",
+        "name": "com₂",
+        "size": 0,
+        "invalid_reason": "Reserved device name with subscript (lowercase)"
+      },
+      {
+        "type": "file",
+        "name": "Com₂",
+        "size": 0,
+        "invalid_reason": "Reserved device name with subscript (mixed case)"
+      },
+      {
+        "type": "file",
+        "name": "LPT1",
+        "size": 0,
+        "invalid_reason": "Reserved device name (uppercase)"
+      },
+      {
+        "type": "file",
+        "name": "lpt1",
+        "size": 0,
+        "invalid_reason": "Reserved device name (lowercase)"
+      },
+      {
+        "type": "file",
+        "name": "Lpt1",
+        "size": 0,
+        "invalid_reason": "Reserved device name (mixed case)"
+      },
+      {
+        "type": "file",
+        "name": "LPT¹",
+        "size": 0,
+        "invalid_reason": "Reserved device name with superscript (uppercase)"
+      },
+      {
+        "type": "file",
+        "name": "lpt¹",
+        "size": 0,
+        "invalid_reason": "Reserved device name with superscript (lowercase)"
+      },
+      {
+        "type": "file",
+        "name": "Lpt¹",
+        "size": 0,
+        "invalid_reason": "Reserved device name with superscript (mixed case)"
+      },
+      {
+        "type": "file",
+        "name": "LPT₁",
+        "size": 0,
+        "invalid_reason": "Reserved device name with subscript (uppercase)"
+      },
+      {
+        "type": "file",
+        "name": "lpt₁",
+        "size": 0,
+        "invalid_reason": "Reserved device name with subscript (lowercase)"
+      },
+      {
+        "type": "file",
+        "name": "Lpt₁",
+        "size": 0,
+        "invalid_reason": "Reserved device name with subscript (mixed case)"
+      },
+      {
+        "type": "file",
+        "name": "contains_question?_mark",
+        "size": 0,
+        "invalid_reason": "Contains invalid character: ?",
+        "example": "report?"
+      },
+      {
+        "type": "file",
+        "name": "contains_asterisk*_char",
+        "size": 0,
+        "invalid_reason": "Contains invalid character: *",
+        "example": "photo*"
+      },
+      {
+        "type": "file",
+        "name": "contains_forward/slash",
+        "size": 0,
+        "invalid_reason": "Contains invalid character: /",
+        "example": "folder/file"
+      },
+      {
+        "type": "file",
+        "name": "contains_back\\slash",
+        "size": 0,
+        "invalid_reason": "Contains invalid character: \\",
+        "example": "data\\backup"
+      },
+      {
+        "type": "file",
+        "name": "contains:colon",
+        "size": 0,
+        "invalid_reason": "Contains invalid character: :",
+        "example": "chapter:one"
+      },
+      {
+        "type": "file",
+        "name": "\"contains_quote",
+        "size": 0,
+        "invalid_reason": "Contains invalid character: \"",
+        "example": "\"resume"
+      },
+      {
+        "type": "file",
+        "name": "contains<less_than",
+        "size": 0,
+        "invalid_reason": "Contains invalid character: <",
+        "example": "email<draft"
+      },
+      {
+        "type": "file",
+        "name": "contains>greater_than",
+        "size": 0,
+        "invalid_reason": "Contains invalid character: >",
+        "example": "final>version"
+      },
+      {
+        "type": "file",
+        "name": "contains|pipe",
+        "size": 0,
+        "invalid_reason": "Contains invalid character: |",
+        "example": "source|code"
+      },
+      {
+        "type": "file",
+        "name": "..starts_with_multiple_periods",
+        "size": 0,
+        "invalid_reason": "Starts with multiple periods",
+        "example": "..document"
+      },
+      {
+        "type": "file",
+        "name": "ends_with_period.",
+        "size": 0,
+        "invalid_reason": "Ends with a period",
+        "example": "report."
+      },
+      {
+        "type": "file",
+        "name": "ends_with_space ",
+        "size": 0,
+        "invalid_reason": "Ends with a space",
+        "example": "thesis "
+      },
+      {
+        "type": "file",
+        "name": "ends_with_tab\t",
+        "size": 0,
+        "invalid_reason": "Ends with a tab",
+        "example": "notes\t"
+      },
+      {
+        "type": "file",
+        "name": ".starts_and_ends_with_period.",
+        "size": 0,
+        "invalid_reason": "Starts with a period and ends with a period",
+        "example": ".config."
+      },
+      {
+        "type": "file",
+        "name": "   ",
+        "size": 0,
+        "invalid_reason": "Filename with only spaces",
+        "example": "   "
+      },
+      {
+        "type": "file",
+        "name": "...",
+        "size": 0,
+        "invalid_reason": "Filename with only periods",
+        "example": "..."
+      },
+      {
+        "type": "file",
+        "name": "COM3",
+        "size": 0,
+        "invalid_reason": "Reserved device name COM3 (uppercase)"
+      },
+      {
+        "type": "file",
+        "name": "com3",
+        "size": 0,
+        "invalid_reason": "Reserved device name COM3 (lowercase)"
+      },
+      {
+        "type": "file",
+        "name": "Com3",
+        "size": 0,
+        "invalid_reason": "Reserved device name COM3 (mixed case)"
+      },
+      {
+        "type": "file",
+        "name": "COM4",
+        "size": 0,
+        "invalid_reason": "Reserved device name COM4 (uppercase)"
+      },
+      {
+        "type": "file",
+        "name": "com4",
+        "size": 0,
+        "invalid_reason": "Reserved device name COM4 (lowercase)"
+      },
+      {
+        "type": "file",
+        "name": "Com4",
+        "size": 0,
+        "invalid_reason": "Reserved device name COM4 (mixed case)"
+      },
+      {
+        "type": "file",
+        "name": "COM5",
+        "size": 0,
+        "invalid_reason": "Reserved device name COM5 (uppercase)"
+      },
+      {
+        "type": "file",
+        "name": "COM6",
+        "size": 0,
+        "invalid_reason": "Reserved device name COM6 (uppercase)"
+      },
+      {
+        "type": "file",
+        "name": "COM7",
+        "size": 0,
+        "invalid_reason": "Reserved device name COM7 (uppercase)"
+      },
+      {
+        "type": "file",
+        "name": "COM8",
+        "size": 0,
+        "invalid_reason": "Reserved device name COM8 (uppercase)"
+      },
+      {
+        "type": "file",
+        "name": "COM9",
+        "size": 0,
+        "invalid_reason": "Reserved device name COM9 (uppercase)"
+      },
+      {
+        "type": "file",
+        "name": "LPT3",
+        "size": 0,
+        "invalid_reason": "Reserved device name LPT3 (uppercase)"
+      },
+      {
+        "type": "file",
+        "name": "lpt3",
+        "size": 0,
+        "invalid_reason": "Reserved device name LPT3 (lowercase)"
+      },
+      {
+        "type": "file",
+        "name": "Lpt3",
+        "size": 0,
+        "invalid_reason": "Reserved device name LPT3 (mixed case)"
+      },
+      {
+        "type": "file",
+        "name": "LPT4",
+        "size": 0,
+        "invalid_reason": "Reserved device name LPT4 (uppercase)"
+      },
+      {
+        "type": "file",
+        "name": "LPT5",
+        "size": 0,
+        "invalid_reason": "Reserved device name LPT5 (uppercase)"
+      },
+      {
+        "type": "file",
+        "name": "LPT6",
+        "size": 0,
+        "invalid_reason": "Reserved device name LPT6 (uppercase)"
+      },
+      {
+        "type": "file",
+        "name": "LPT7",
+        "size": 0,
+        "invalid_reason": "Reserved device name LPT7 (uppercase)"
+      },
+      {
+        "type": "file",
+        "name": "LPT8",
+        "size": 0,
+        "invalid_reason": "Reserved device name LPT8 (uppercase)"
+      },
+      {
+        "type": "file",
+        "name": "LPT9",
+        "size": 0,
+        "invalid_reason": "Reserved device name LPT9 (uppercase)"
+      },
+      {
+        "type": "file",
+        "name": "file_name\u0000with_null",
+        "size": 0,
+        "invalid_reason": "Contains non-printable ASCII character (NULL)",
+        "example": "document\u0000.txt"
+      },
+      {
+        "type": "file",
+        "name": "file_with\u0007bell",
+        "size": 0,
+        "invalid_reason": "Contains non-printable ASCII character (BELL)",
+        "example": "report\u0007.doc"
+      },
+      {
+        "type": "file",
+        "name": "file_with\u200Ezero_width",
+        "size": 0,
+        "invalid_reason": "Contains Unicode control character (LRM)",
+        "example": "data\u200E.xlsx"
+      },
+      {
+        "type": "file",
+        "name": "file_with\u202Ebidi_override",
+        "size": 0,
+        "invalid_reason": "Contains Unicode control character (RLO)",
+        "example": "text\u202E.pdf"
+      },
+      {
+        "type": "file",
+        "name": "CLOCK$",
+        "size": 0,
+        "invalid_reason": "Reserved Windows device name",
+        "example": "CLOCK$"
+      },
+      {
+        "type": "file",
+        "name": "CONFIG$",
+        "size": 0,
+        "invalid_reason": "Reserved Windows device name",
+        "example": "CONFIG$"
+      },
+      {
+        "type": "file",
+        "name": ". . . .",
+        "size": 0,
+        "invalid_reason": "Filename consisting solely of dots and spaces",
+        "example": ". . . ."
+      },
+      {
+        "type": "file",
+        "name": " . . ",
+        "size": 0,
+        "invalid_reason": "Filename consisting solely of dots and spaces",
+        "example": " . . "
+      },
+      {
+        "type": "file",
+        "name": "СОΝ",
+        "size": 0,
+        "invalid_reason": "Unicode homoglyph that looks like CON",
+        "example": "СОΝ"
+      },
+      {
+        "type": "file",
+        "name": "ＣＯＮ",
+        "size": 0,
+        "invalid_reason": "Unicode fullwidth version of CON",
+        "example": "ＣＯＮ"
+      },
+      {
+        "type": "file",
+        "name": "ＬＰＴ１",
+        "size": 0,
+        "invalid_reason": "Unicode fullwidth version of LPT1",
+        "example": "ＬＰＴ１"
+      },
+      {
+        "type": "file",
+        "name": "ＮＵＬ",
+        "size": 0,
+        "invalid_reason": "Unicode fullwidth version of NUL",
+        "example": "ＮＵＬ"
+      },
+      {
+        "type": "file",
+        "name": "filename_with_é",
+        "size": 0,
+        "invalid_reason": "Contains Extended-ASCII character é",
+        "example": "résumé"
+      },
+      {
+        "type": "file",
+        "name": "filename_with_ñ",
+        "size": 0,
+        "invalid_reason": "Contains Extended-ASCII character ñ",
+        "example": "español"
+      },
+      {
+        "type": "file",
+        "name": "filename_with_ß",
+        "size": 0,
+        "invalid_reason": "Contains Extended-ASCII character ß",
+        "example": "straße"
+      },
+      {
+        "type": "file",
+        "name": "filename_with_æ",
+        "size": 0,
+        "invalid_reason": "Contains Extended-ASCII character æ",
+        "example": "Encyclopædia"
+      },
+      {
+        "type": "file",
+        "name": "$Recycle.Bin",
+        "size": 0,
+        "invalid_reason": "Windows 10/11 reserved system folder",
+        "example": "$Recycle.Bin"
+      },
+      {
+        "type": "file",
+        "name": "$WINDOWS.~BT",
+        "size": 0,
+        "invalid_reason": "Windows 10/11 reserved system folder",
+        "example": "$WINDOWS.~BT"
+      },
+      {
+        "type": "file",
+        "name": "$WinREAgent",
+        "size": 0,
+        "invalid_reason": "Windows 10/11 reserved system folder",
+        "example": "$WinREAgent"
+      },
+      {
+        "type": "file",
+        "name": "$SysReset",
+        "size": 0,
+        "invalid_reason": "Windows 10/11 reserved system folder",
+        "example": "$SysReset"
+      },
+      {
+        "type": "file",
+        "name": "pagefile.sys",
+        "size": 0,
+        "invalid_reason": "Windows protected system file",
+        "example": "pagefile.sys"
+      },
+      {
+        "type": "file",
+        "name": "hiberfil.sys",
+        "size": 0,
+        "invalid_reason": "Windows protected system file",
+        "example": "hiberfil.sys"
+      },
+      {
+        "type": "file",
+        "name": "swapfile.sys",
+        "size": 0,
+        "invalid_reason": "Windows protected system file",
+        "example": "swapfile.sys"
+      },
+      {
+        "type": "file",
+        "name": "bootmgr",
+        "size": 0,
+        "invalid_reason": "Windows protected system file",
+        "example": "bootmgr"
+      }
+    ]
+  }
+]

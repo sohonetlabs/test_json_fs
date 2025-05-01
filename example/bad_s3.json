@@ -1,0 +1,202 @@
+[
+  {
+    "type": "directory",
+    "name": "s3_illegal_names",
+    "size": 0,
+    "contents": [
+      {
+        "type": "directory",
+        "name": "characters_to_definitely_avoid",
+        "size": 0,
+        "contents": [
+       
+          {
+            "type": "file",
+            "name": "\\",
+            "size": 0,
+            "comment": "Path separator in Windows systems"
+          },
+          {
+            "type": "file",
+            "name": "{}",
+            "size": 0,
+            "comment": "{ and } have special meaning in programming contexts"
+          },
+          {
+            "type": "file",
+            "name": "^",
+            "size": 0,
+            "comment": "^ has special meaning in regex and other contexts"
+          },
+          {
+            "type": "file",
+            "name": "%",
+            "size": 0,
+            "comment": "% is URL encoding indicator"
+          },
+          {
+            "type": "file",
+            "name": "#",
+            "size": 0,
+            "comment": "# is fragment identifier in URLs"
+          },
+          {
+            "type": "file",
+            "name": "`",
+            "size": 0,
+            "comment": "` is used for command substitution in some shells"
+          },
+          {
+            "type": "file",
+            "name": "[]",
+            "size": 0,
+            "comment": "[] have special meaning in various programming contexts"
+          },
+          {
+            "type": "file",
+            "name": "<>",
+            "size": 0,
+            "comment": "> and < are used for redirection in command line"
+          },
+          {
+            "type": "file",
+            "name": "~",
+            "size": 0,
+            "comment": "~ is used for path expansion in Unix systems"
+          },
+          {
+            "type": "file",
+            "name": "\"'",
+            "size": 0,
+            "comment": "\" and ' are string delimiters"
+          },
+          {
+            "type": "file",
+            "name": "|",
+            "size": 0,
+            "comment": "| is used for command chaining in shells"
+          },
+          {
+            "type": "file",
+            "name": "*",
+            "size": 0,
+            "comment": "* is a wildcard character"
+          }
+        ]
+      },
+      {
+        "type": "directory",
+        "name": "characters_that_must_be_url_encoded",
+        "size": 0,
+        "contents": [
+          {
+            "type": "file",
+            "name": "&",
+            "size": 0,
+            "comment": "& is URL parameter separator"
+          },
+          {
+            "type": "file",
+            "name": "$",
+            "size": 0,
+            "comment": "$ is variable indicator in some contexts"
+          },
+          {
+            "type": "file",
+            "name": "@",
+            "size": 0,
+            "comment": "@ has special meaning in URLs"
+          },
+          {
+            "type": "file",
+            "name": "=",
+            "size": 0,
+            "comment": "= is URL parameter assignment"
+          },
+          {
+            "type": "file",
+            "name": ";",
+            "size": 0,
+            "comment": "; is URL parameter separator"
+          },
+          {
+            "type": "file",
+            "name": ":",
+            "size": 0,
+            "comment": ": is protocol/port separator in URLs"
+          },
+          {
+            "type": "file",
+            "name": "+",
+            "size": 0,
+            "comment": "+ represents space in URL encoding"
+          },
+          {
+            "type": "file",
+            "name": " ",
+            "size": 0,
+            "comment": "Space is invalid in URLs without encoding"
+          },
+          {
+            "type": "file",
+            "name": ",",
+            "size": 0,
+            "comment": ", can cause issues in some contexts"
+          },
+          {
+            "type": "file",
+            "name": "?",
+            "size": 0,
+            "comment": "? is query string separator"
+          }
+        ]
+      },
+      
+      {
+        "type": "directory",
+        "name": "prefixes_to_avoid",
+        "size": 0,
+        "contents": [
+          
+          {
+            "type": "file",
+            "name": "xn--",
+            "size": 0,
+            "comment": "Reserved for Punycode encoding"
+          },
+          {
+            "type": "file",
+            "name": "_",
+            "size": 0,
+            "comment": "Can cause issues with some applications"
+          }
+        ]
+      },
+      {
+        "type": "directory",
+        "name": "problematic_suffixes",
+        "size": 0,
+        "contents": [
+          {
+            "type": "file",
+            "name": "ending.",
+            "size": 0,
+            "comment": "Ending with period can cause issues"
+          },
+          {
+            "type": "file",
+            "name": "ending ",
+            "size": 0,
+            "comment": "Trailing spaces can be invisible and problematic"
+          },
+          {
+            "type": "file",
+            "name": "ending~",
+            "size": 0,
+            "comment": "Tilde suffix used for backup files in some systems"
+          }
+        ]
+      }
+    ]
+  }
+]
