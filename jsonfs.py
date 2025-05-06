@@ -158,6 +158,14 @@ class JSONFileSystem(Operations):
         self.iops_count = 0
         self.bytes_read = 0
         self.stats_lock = threading.Lock()
+        
+        # Rate limiting components
+        self.last_op_time = time.time()
+        
+        # IOP limiting components
+        self.iop_window_start = time.time()
+        self.iop_window_count = 0
+        self.iop_limit_lock = threading.RLock()  # Separate lock for IOP limiting
 
         # Generate block cache
         self.block_cache = self._generate_block_cache()
@@ -226,10 +234,76 @@ class JSONFileSystem(Operations):
         self.logger.debug("macOS control files added: " + ", ".join(macos_root_empty_files_to_control_caching))
 
     def _increment_stats(self, bytes_read=0):
-        """Increment IOPS and bytes read counters."""
+        """Increment IOPS and bytes read counters. Apply rate limiting if configured."""
+        # First, apply rate limiting if configured
+        self._apply_rate_limit()
+        
+        # Then, apply IOP limiting if configured
+        self._apply_iop_limit()
+        
+        # Finally, update statistics
         with self.stats_lock:
             self.iops_count += 1
             self.bytes_read += bytes_read
+            
+    def _apply_rate_limit(self):
+        """Apply rate limiting to enforce minimum delay between operations.
+        
+        This method intentionally holds the lock during sleep to enforce a
+        global rate limit across all filesystem operations.
+        """
+        if self.rate_limit <= 0:
+            return
+            
+        with self.stats_lock:
+            current_time = time.time()
+            time_since_last_op = current_time - self.last_op_time
+            
+            if time_since_last_op < self.rate_limit:
+                # Intentionally hold the lock while sleeping to enforce a global rate limit
+                # This ensures all operations are separated by at least rate_limit seconds
+                sleep_time = self.rate_limit - time_since_last_op
+                time.sleep(sleep_time)
+                    
+            # Update the last operation time
+            self.last_op_time = time.time()
+    
+    def _apply_iop_limit(self):
+        """Apply IOP limiting to enforce maximum operations per second.
+        
+        This method intentionally holds the lock during sleep to properly 
+        throttle all operations system-wide to the specified IOPS limit.
+        """
+        if self.iop_limit <= 0:
+            return
+            
+        with self.iop_limit_lock:
+            current_time = time.time()
+            # Calculate time elapsed since the window started
+            window_elapsed = current_time - self.iop_window_start
+            
+            # If a full second has elapsed, reset the window
+            if window_elapsed >= 1.0:
+                self.iop_window_start = current_time
+                self.iop_window_count = 1  # Count this operation
+                return
+                
+            # Increment the counter for this operation
+            self.iop_window_count += 1
+            
+            # If we've exceeded the limit, sleep until the window ends
+            if self.iop_window_count > self.iop_limit:
+                # Calculate sleep time to reach the end of the current 1-second window
+                sleep_time = 1.0 - window_elapsed
+                
+                # Intentionally keep the lock while sleeping to block all operations
+                # This ensures we truly limit to the specified IOPS
+                if sleep_time > 0:
+                    time.sleep(sleep_time)
+                    
+                # Start a new window
+                self.iop_window_start = time.time()
+                self.iop_window_count = 1  # Count this operation
 
     def _report_stats(self):
         """Report IOPS and data transfer statistics periodically."""
