@@ -83,9 +83,8 @@ Symlinks are not supported.
 
 ## usage :- 
 
-    usage: jsonfs.py [-h] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--rate-limit RATE_LIMIT] [--iop-limit IOP_LIMIT] [--report-stats] [--log-to-syslog] [--version]
-                 [--block-size BLOCK_SIZE] [--pre-generated-blocks PRE_GENERATED_BLOCKS] [--seed SEED] [--no-macos-cache-files] [--uid UID] [--gid GID] [--mtime MTIME]
-                 [--unicode-normalization {NFC,NFD,NFKC,NFKD,none}] [--fill-char FILL_CHAR | --semi-random]
+    usage: jsonfs.py [-h] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--rate-limit RATE_LIMIT] [--iop-limit IOP_LIMIT] [--report-stats] [--log-to-syslog] [--version] [--block-size BLOCK_SIZE] [--pre-generated-blocks PRE_GENERATED_BLOCKS]
+                 [--seed SEED] [--no-macos-cache-files] [--ignore-appledouble] [--uid UID] [--gid GID] [--mtime MTIME] [--unicode-normalization {NFC,NFD,NFKC,NFKD,none}] [--fill-char FILL_CHAR | --semi-random]
                  json_file mount_point
 
     Mount a JSON file as a read-only filesystem
@@ -112,12 +111,12 @@ Symlinks are not supported.
     --seed SEED           Seed for random number generation. If not provided, the random number 4 is used.
     --no-macos-cache-files
                             Do not add macOS control files to prevent caching
+    --ignore-appledouble  Suppress warnings about missing AppleDouble (._) files
     --uid UID             Set the UID for all files and directories (default: current user's UID)
     --gid GID             Set the GID for all files and directories (default: current user's GID)
     --mtime MTIME         Set the modification time for all files and directories (default: 2017-10-17)
     --unicode-normalization {NFC,NFD,NFKC,NFKD,none}
-                            Unicode normalization form to use (default: NFD, also supports NFC, NFKC, NFKD, or 'none' for no normalization) see
-                            https://www.unicode.org/faq/normalization.html for more information
+                            Unicode normalization form to use (default: NFD, also supports NFC, NFKC, NFKD, or 'none' for no normalization) see https://www.unicode.org/faq/normalization.html for more information
     --fill-char FILL_CHAR
                             Character to fill read data with (default: null byte)
     --semi-random         Use semi-random data for file contents

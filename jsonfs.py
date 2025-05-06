@@ -33,7 +33,7 @@ if sys.platform == "darwin":
 
 from fuse import FUSE, FuseOSError, Operations
 
-__version__ = "1.6.2"
+__version__ = "1.6.3"
 
 # Constants for fill modes
 FILL_CHAR_MODE = "fill_char"
@@ -128,13 +128,35 @@ class JSONFileSystem(Operations):
         pre_generated_blocks=1000,
         seed=None,
         add_macos_cache_files=True,
+        ignore_appledouble=False,
         uid=None,
         gid=None,
         mtime=None,
         unicode_normalization="NFD",
     ):
+        self.ignore_appledouble = ignore_appledouble
         self.json_data = json_data
+        
+        # Ensure we have a valid root directory
+        if not json_data or len(json_data) == 0 or not isinstance(json_data[0], dict):
+            raise ValueError("JSON data must contain at least one item which must be a dictionary")
+        
         self.root = json_data[0]  # The first item should be the root directory
+        
+        # Ensure root is a directory with required fields
+        if self.root.get("type") != "directory":
+            raise ValueError("First item in JSON data must be a directory")
+            
+        # Ensure name field exists
+        if "name" not in self.root:
+            self.logger.warning("Root directory missing 'name' field, defaulting to '/'")
+            self.root["name"] = "/"
+            
+        # Ensure contents field exists
+        if "contents" not in self.root:
+            self.logger.warning("Root directory missing 'contents' field, initializing as empty")
+            self.root["contents"] = []
+        
         self.now = time.time()
         self.fill_mode = fill_mode
         self.fill_char = fill_char
@@ -144,6 +166,7 @@ class JSONFileSystem(Operations):
         self.logger = logger or logging.getLogger(__name__)
         self.block_size = block_size
         self.pre_generated_blocks = pre_generated_blocks
+            
         self.uid = uid
         self.gid = gid
         self.mtime = mtime
@@ -448,9 +471,16 @@ class JSONFileSystem(Operations):
         self.logger.debug(f"getattr called for path: {path}")
         item = self._get_item(path)
         if item is None:
-            self.logger.warning(
-                f"Path not found (requested file is not in file system): {path} {_unicode_to_named_entities(path)}"
-            )
+            # Check if this is an AppleDouble file (starts with ._) and we're ignoring those
+            path_basename = os.path.basename(path)
+            if hasattr(self, 'ignore_appledouble') and self.ignore_appledouble and path_basename.startswith('._'):
+                # Just quietly fail for AppleDouble files
+                self.logger.debug(f"Ignoring AppleDouble file: {path}")
+            else:
+                # Log warning for regular missing files
+                self.logger.warning(
+                    f"Path not found (requested file is not in file system): {path} {_unicode_to_named_entities(path)}"
+                )
             raise FuseOSError(ENOENT)
 
         st = {
@@ -578,6 +608,22 @@ class JSONFileSystem(Operations):
     def truncate(self, path, length):
         """Truncate a file (not allowed in read-only filesystem)."""
         raise FuseOSError(EROFS)
+        
+    def getxattr(self, path, name, position=0):
+        """Get an extended attribute (not supported in this filesystem)."""
+        # Return ENODATA to indicate attribute doesn't exist
+        # This prevents macOS from creating resource fork files
+        raise FuseOSError(ENODATA)
+        
+    def listxattr(self, path):
+        """List extended attributes (not supported in this filesystem)."""
+        # Return empty list to indicate no attributes
+        return []
+        
+    def setxattr(self, path, name, value, options, position=0):
+        """Set an extended attribute (not allowed in read-only filesystem)."""
+        # Fail with EROFS (read-only filesystem)
+        raise FuseOSError(EROFS)
 
 
 def main():
@@ -642,6 +688,11 @@ def main():
         help="Do not add macOS control files to prevent caching",
     )
     parser.add_argument(
+        "--ignore-appledouble",
+        action="store_true",
+        help="Suppress warnings about missing AppleDouble (._) files",
+    )
+    parser.add_argument(
         "--uid",
         type=int,
         default=os.getuid(),
@@ -694,11 +745,62 @@ def main():
     fill_char = args.fill_char if args.fill_char else "\0"
     block_size = parse_size(args.block_size)
 
-    mtime = datetime.datetime.strptime(args.mtime, "%Y-%m-%d").timestamp()
+    # Parse the modification time with error handling
+    try:
+        mtime = datetime.datetime.strptime(args.mtime, "%Y-%m-%d").timestamp()
+    except ValueError as e:
+        logger.error(f"Invalid date format: {args.mtime}. Expected format: YYYY-MM-DD")
+        logger.error(f"Error details: {e}")
+        sys.exit(1)
 
-    with args.json_file.open("r") as f:
-        json_data = json.load(f)
+    # Load and validate the JSON file
+    try:
+        with args.json_file.open("r") as f:
+            json_data = json.load(f)
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to parse JSON file: {args.json_file}")
+        logger.error(f"JSON error at line {e.lineno}, column {e.colno}: {e.msg}")
+        sys.exit(1)
+    except (IOError, PermissionError) as e:
+        logger.error(f"Failed to read JSON file: {args.json_file}")
+        logger.error(f"Error details: {e}")
+        sys.exit(1)
+        
+    # Validate JSON structure
+    if not json_data or not isinstance(json_data, list):
+        logger.error("Invalid JSON format: Root must be a non-empty list")
+        sys.exit(1)
+        
+    if len(json_data) == 0:
+        logger.error("Invalid JSON format: No filesystem entries found")
+        sys.exit(1)
+        
+    if not isinstance(json_data[0], dict):
+        logger.error("Invalid JSON format: First entry must be a dictionary (root directory)")
+        sys.exit(1)
+        
+    if json_data[0].get("type") != "directory":
+        logger.error("Invalid JSON format: First entry must be a directory")
+        sys.exit(1)
+        
+    if "name" not in json_data[0]:
+        logger.warning("Root directory missing 'name' field, will use default")
+        
+    if "contents" not in json_data[0]:
+        logger.warning("Root directory missing 'contents' field, will use empty list")
 
+    # Prepare mount options
+    mount_options = {
+        'nothreads': True,
+        'foreground': True
+    }
+    
+    # On macOS, add options to help reduce macOS filesystem-specific behaviors
+    if sys.platform == 'darwin':
+        # 'noappledouble' might help with some resource fork behavior
+        mount_options['noappledouble'] = True
+ 
+    
     FUSE(
         JSONFileSystem(
             json_data,
@@ -712,14 +814,14 @@ def main():
             pre_generated_blocks=args.pre_generated_blocks,
             seed=args.seed,
             add_macos_cache_files=not args.no_macos_cache_files,
+            ignore_appledouble=args.ignore_appledouble,
             uid=args.uid,
             gid=args.gid,
             mtime=mtime,
             unicode_normalization=args.unicode_normalization,
         ),
         str(args.mount_point),
-        nothreads=True,
-        foreground=True,
+        **mount_options
     )
 
 
