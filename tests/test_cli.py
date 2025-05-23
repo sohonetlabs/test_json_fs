@@ -59,7 +59,7 @@ class TestCLI:
         result = self.run_jsonfs(["--version"])
         assert result.returncode == 0
         assert "jsonfs.py" in result.stdout
-        assert "1.6.5" in result.stdout
+        assert "1.6.6" in result.stdout
     
     def test_mutually_exclusive_fill_modes(self, json_file):
         """Test that fill-char and semi-random are mutually exclusive."""

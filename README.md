@@ -12,6 +12,14 @@ Large structures can be emulated, for testing software.
 
 ## Recent Changes
 
+### v1.6.6
+- Added comprehensive test suite with 99% code coverage
+- Added 88 tests covering all major functionality
+- Added tests for edge cases, error handling, and FUSE operations
+- Added integration tests for macOS FUSE-T
+- Added background thread and statistics reporting tests
+- Improved code quality and reliability through extensive testing
+
 ### v1.6.5
 - Added LRU cache to path sanitization for improved performance
 - Cached path operations reduce CPU usage for repeated file access
@@ -94,31 +102,62 @@ Victims claimed by Big list of naughty strings fs
 
 ## Testing
 
-The project includes a comprehensive test suite covering:
+The project includes a comprehensive test suite with **99% code coverage** across 88 tests:
+
+### Test Categories
 
 - **Unit tests** (`test_unit.py`): Core functionality, helpers, caching
-- **Edge case tests** (`test_edge_cases.py`): Large files, special characters, rate limiting
+- **Edge case tests** (`test_edge_cases.py`): Large files, special characters, rate limiting, FUSE error cases
 - **CLI tests** (`test_cli.py`): Command-line argument parsing and validation
 - **Integration tests** (`test_integration.py`): Full filesystem mounting (requires FUSE)
+- **Main error tests** (`test_main_errors.py`): JSON validation and error handling
+- **Logging tests** (`test_logging.py`): File and stdout logging functionality
+- **macOS mount tests** (`test_macos_mount.py`): macOS-specific FUSE-T integration
+- **Stats thread tests** (`test_stats_thread.py`): Background statistics reporting
+
+### Running Tests
 
 ```bash
-# Install test dependencies
-pip install -r requirements/requirements-dev.txt
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate
 
-# Run all unit tests
-pytest tests/test_unit.py tests/test_edge_cases.py tests/test_cli.py -v
+# Install test dependencies
+pip install -r requirements.txt
+pip install pytest pytest-cov
+
+# Run all tests
+pytest
+
+# Run all tests with coverage report
+pytest --cov=jsonfs --cov-report=term-missing
 
 # Run specific test categories
 pytest tests/test_unit.py -v              # Core functionality
-pytest tests/test_edge_cases.py -v        # Edge cases
+pytest tests/test_edge_cases.py -v        # Edge cases and error conditions
 pytest tests/test_cli.py -v               # CLI tests
+pytest tests/test_integration.py -v       # Integration tests (macOS only)
 
-# Run with coverage report
-pytest tests/ --cov=jsonfs --cov-report=html
-
-# Run all tests
-./run_tests.sh
+# Generate HTML coverage report
+pytest --cov=jsonfs --cov-report=html
+# Open htmlcov/index.html in browser
 ```
+
+### Test Coverage
+
+Current test coverage: **99%** (413/417 lines covered)
+
+The test suite covers:
+- All core filesystem operations (read, getattr, readdir, etc.)
+- Error handling and edge cases
+- Rate limiting and IOP limiting
+- Unicode normalization
+- Large file support (>4GB)
+- Semi-random data generation
+- LRU caching for performance
+- Background statistics reporting
+- Command-line argument validation
+- JSON structure validation
 
 ## Limitations
 

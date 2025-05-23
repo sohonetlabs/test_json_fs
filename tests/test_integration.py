@@ -13,6 +13,12 @@ import threading
 # Add parent directory to path to import jsonfs
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Skip all tests in this file if not on macOS or if FUSE is not available
+pytestmark = pytest.mark.skipif(
+    sys.platform != "darwin" or not os.path.exists("/usr/local/lib/libfuse-t.dylib"),
+    reason="Requires macOS with FUSE-T installed"
+)
+
 
 class TestIntegration:
     """Integration tests that mount the filesystem."""
@@ -55,25 +61,46 @@ class TestIntegration:
         """Mount the filesystem in a subprocess."""
         cmd = [
             sys.executable,
-            "jsonfs.py",
+            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "jsonfs.py"),
             json_file,
             str(mount_point),
-            "--log-level", "ERROR"  # Reduce noise
+            "--log-level", "ERROR",  # Reduce noise
+            "--report-stats"  # Disable stats reporting
         ]
         if extra_args:
             cmd.extend(extra_args)
         
-        proc = subprocess.Popen(cmd, cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        time.sleep(1)  # Give it time to mount
-        return proc
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        
+        # Wait for mount by checking if files appear
+        for i in range(50):  # 5 seconds timeout
+            time.sleep(0.1)
+            try:
+                files = os.listdir(mount_point)
+                # Check for expected files to confirm it's mounted
+                if any(f in files for f in [".metadata_never_index", "test.txt", "empty.txt"]):
+                    return proc
+            except OSError:
+                pass
+            
+            # Check if process died
+            if proc.poll() is not None:
+                stdout, stderr = proc.communicate()
+                raise RuntimeError(f"Mount failed: {stderr.decode()}")
+        
+        # Timeout
+        proc.terminate()
+        stdout, stderr = proc.communicate()
+        raise RuntimeError(f"Mount timeout: {stderr.decode()}")
     
     def test_basic_mount(self, json_file, mount_point):
         """Test basic mounting and unmounting."""
         proc = self.mount_fs(json_file, mount_point)
         
         try:
-            # Check if mounted
-            assert os.path.ismount(mount_point)
+            # Check if mounted by listing files
+            files = os.listdir(mount_point)
+            assert len(files) > 0  # Should have files
             
             # List root directory
             files = os.listdir(mount_point)

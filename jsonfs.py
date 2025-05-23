@@ -30,10 +30,10 @@ if sys.platform == "darwin":
                 os.environ["FUSE_LIBRARY_PATH"] = lib_path
                 print(f"Found FUSE library: {lib_name} at {lib_path}")
                 break
-
+# we have to imprt fuse after setting the FUSE_LIBRARY_PATH
 from fuse import FUSE, FuseOSError, Operations
 
-__version__ = "1.6.5"
+__version__ = "1.6.6"
 
 # Constants for fill modes
 FILL_CHAR_MODE = "fill_char"
