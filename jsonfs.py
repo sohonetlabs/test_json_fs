@@ -33,7 +33,7 @@ if sys.platform == "darwin":
 
 from fuse import FUSE, FuseOSError, Operations
 
-__version__ = "1.6.4"
+__version__ = "1.6.5"
 
 # Constants for fill modes
 FILL_CHAR_MODE = "fill_char"
@@ -392,8 +392,9 @@ class JSONFileSystem(Operations):
                 path_map.update(self._build_path_map(child, child_path))
         return path_map
 
+    @lru_cache(maxsize=1000)
     def _sanitize_path(self, path):
-        """Sanitize and normalize the path."""
+        """Sanitize and normalize the path with caching for performance."""
         path_str = str(path)
         # Apply Unicode normalization if specified
         if self.unicode_normalization != "none":

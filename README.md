@@ -12,6 +12,10 @@ Large structures can be emulated, for testing software.
 
 ## Recent Changes
 
+### v1.6.5
+- Added LRU cache to path sanitization for improved performance
+- Cached path operations reduce CPU usage for repeated file access
+
 ### v1.6.4
 - Added validation for --fill-char option to ensure single character input
 - Improved help text clarity for fill-char option
@@ -177,7 +181,7 @@ you will now have a filesystem mounted on ./jsonfs
 
     python jsonfs.py ./example/test.json ./jsonfs
 
-        2024-07-30 15:10:59,537 - INFO - Starting JSONFileSystem version 1.6.4 with log level: INFO
+        2024-07-30 15:10:59,537 - INFO - Starting JSONFileSystem version 1.6.5 with log level: INFO
         2024-07-30 15:10:59,538 - INFO - Using seed: 4
         2024-07-30 15:10:59,538 - INFO - Generating 100 blocks of size 128.00 KB
         2024-07-30 15:11:00,890 - INFO - Block cache generation took 1.35 seconds
