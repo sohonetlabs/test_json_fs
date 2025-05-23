@@ -10,6 +10,14 @@ Large structures can be emulated, for testing software.
 
 ## SEE NOTE for Macos
 
+## Recent Changes (v1.6.3)
+
+- Fixed critical bug: Added missing ENODATA import for extended attributes support
+- Fixed initialization order issue where logger was used before being set
+- Optimized memory usage by replacing pre-generated fill buffers with LRU cache
+- Fixed race condition in IOPS statistics reporting
+- Improved thread safety in rate limiting implementation
+
 ## Features
 
 - Mount a JSON file as a read-only filesystem
@@ -19,6 +27,7 @@ Large structures can be emulated, for testing software.
 - IOPS and data transfer reporting
 - Custom fill character for read operations or use semi random data
 - Has options to make the filesystem to be deterministic, so that between 2 runs the same data will be returned, diff'ing tars of the same fs between runs, returns no differences
+- Memory-efficient fill buffer caching with LRU eviction (caches up to 1000 different buffer sizes)
 - Unicode normalisation options :-( 
     * NFC (Normalization Form Canonical Composition):
         * This is the most commonly used form.
@@ -163,7 +172,7 @@ you will now have a filesystem mounted on ./jsonfs
 
     python jsonfs.py ./example/test.json ./jsonfs
 
-        2024-07-30 15:10:59,537 - INFO - Starting JSONFileSystem version 1.2.0 with log level: INFO
+        2024-07-30 15:10:59,537 - INFO - Starting JSONFileSystem version 1.6.3 with log level: INFO
         2024-07-30 15:10:59,538 - INFO - Using seed: 4
         2024-07-30 15:10:59,538 - INFO - Generating 100 blocks of size 128.00 KB
         2024-07-30 15:11:00,890 - INFO - Block cache generation took 1.35 seconds
@@ -212,18 +221,8 @@ to install on macOS
 	brew install fuse-t
 	brew install fuse-t-sshfs
     
-**Now patched to so we do not need to do this on Macos**
+**Now automatically detects fuse-t on macOS**
 
-You will need to modify pyfuse and patch the following line
-which in my case is located <virtual env>/lib/python3.13/site-packages/fuse.py line 90
-
-
-            _libfuse_path = (find_library('fuse4x') or find_library('osxfuse') or
-                         find_library('fuse'))
-
-to
-
-            _libfuse_path = (find_library('fuse4x') or find_library('osxfuse') or
-                        find_library('fuse') or find_library('libfuse-t'))
+The script will automatically search for and use fuse-t on macOS. If you encounter issues, ensure fuse-t is properly installed via Homebrew as shown above.
 
 
