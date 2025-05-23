@@ -1,0 +1,24 @@
+[
+  {
+    "type": "directory",
+    "name": "/",
+    "contents": [
+      {
+        "type": "file",
+        "name": "test.txt",
+        "size": 100
+      },
+      {
+        "type": "directory",
+        "name": "subdir",
+        "contents": [
+          {
+            "type": "file",
+            "name": "nested.txt",
+            "size": 50
+          }
+        ]
+      }
+    ]
+  }
+]

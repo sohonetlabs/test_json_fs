@@ -92,6 +92,34 @@ Victims claimed by Big list of naughty strings fs
 - FUSE using fuse-t see ** NOTE **
 - `fusepy` Python package
 
+## Testing
+
+The project includes a comprehensive test suite covering:
+
+- **Unit tests** (`test_unit.py`): Core functionality, helpers, caching
+- **Edge case tests** (`test_edge_cases.py`): Large files, special characters, rate limiting
+- **CLI tests** (`test_cli.py`): Command-line argument parsing and validation
+- **Integration tests** (`test_integration.py`): Full filesystem mounting (requires FUSE)
+
+```bash
+# Install test dependencies
+pip install -r requirements/requirements-dev.txt
+
+# Run all unit tests
+pytest tests/test_unit.py tests/test_edge_cases.py tests/test_cli.py -v
+
+# Run specific test categories
+pytest tests/test_unit.py -v              # Core functionality
+pytest tests/test_edge_cases.py -v        # Edge cases
+pytest tests/test_cli.py -v               # CLI tests
+
+# Run with coverage report
+pytest tests/ --cov=jsonfs --cov-report=html
+
+# Run all tests
+./run_tests.sh
+```
+
 ## Limitations
 
 The filesystem is read-only. Write operations will raise a "Read-only file system" error.

@@ -1,0 +1,23 @@
+[
+  {
+    "type": "directory",
+    "name": "/",
+    "contents": [
+      {
+        "type": "file",
+        "name": "café.txt",
+        "size": 100
+      },
+      {
+        "type": "file",
+        "name": "文件.txt",
+        "size": 200
+      },
+      {
+        "type": "file",
+        "name": "emoji😀.txt",
+        "size": 50
+      }
+    ]
+  }
+]
