@@ -33,7 +33,7 @@ if sys.platform == "darwin":
 
 from fuse import FUSE, FuseOSError, Operations
 
-__version__ = "1.6.3"
+__version__ = "1.6.4"
 
 # Constants for fill modes
 FILL_CHAR_MODE = "fill_char"
@@ -721,7 +721,7 @@ def main():
     fill_mode_group = parser.add_mutually_exclusive_group()
     fill_mode_group.add_argument(
         "--fill-char",
-        help="Character to fill read data with (default: null byte)",
+        help="Single character to fill read data with (default: null byte)",
     )
     fill_mode_group.add_argument(
         "--semi-random",
@@ -742,6 +742,12 @@ def main():
 
     fill_mode = SEMI_RANDOM_MODE if args.semi_random else FILL_CHAR_MODE
     fill_char = args.fill_char if args.fill_char else "\0"
+    
+    # Validate fill_char is a single character
+    if fill_mode == FILL_CHAR_MODE and len(fill_char) != 1:
+        logger.error(f"Error: fill-char must be exactly one character, got {len(fill_char)} characters: {repr(fill_char)}")
+        sys.exit(1)
+    
     block_size = parse_size(args.block_size)
 
     # Parse the modification time with error handling

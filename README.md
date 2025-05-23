@@ -10,8 +10,13 @@ Large structures can be emulated, for testing software.
 
 ## SEE NOTE for Macos
 
-## Recent Changes (v1.6.3)
+## Recent Changes
 
+### v1.6.4
+- Added validation for --fill-char option to ensure single character input
+- Improved help text clarity for fill-char option
+
+### v1.6.3
 - Fixed critical bug: Added missing ENODATA import for extended attributes support
 - Fixed initialization order issue where logger was used before being set
 - Optimized memory usage by replacing pre-generated fill buffers with LRU cache
@@ -127,7 +132,7 @@ Symlinks are not supported.
     --unicode-normalization {NFC,NFD,NFKC,NFKD,none}
                             Unicode normalization form to use (default: NFD, also supports NFC, NFKC, NFKD, or 'none' for no normalization) see https://www.unicode.org/faq/normalization.html for more information
     --fill-char FILL_CHAR
-                            Character to fill read data with (default: null byte)
+                            Single character to fill read data with (default: null byte)
     --semi-random         Use semi-random data for file contents
 
 ## Example fs layouts in the examples directory
@@ -172,7 +177,7 @@ you will now have a filesystem mounted on ./jsonfs
 
     python jsonfs.py ./example/test.json ./jsonfs
 
-        2024-07-30 15:10:59,537 - INFO - Starting JSONFileSystem version 1.6.3 with log level: INFO
+        2024-07-30 15:10:59,537 - INFO - Starting JSONFileSystem version 1.6.4 with log level: INFO
         2024-07-30 15:10:59,538 - INFO - Using seed: 4
         2024-07-30 15:10:59,538 - INFO - Generating 100 blocks of size 128.00 KB
         2024-07-30 15:11:00,890 - INFO - Block cache generation took 1.35 seconds
