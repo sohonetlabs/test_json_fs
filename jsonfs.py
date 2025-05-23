@@ -8,7 +8,7 @@ import sys
 import threading
 import time
 import datetime
-from errno import ENOENT, EROFS
+from errno import ENOENT, EROFS, ENODATA
 from functools import lru_cache
 from stat import S_IFDIR, S_IFREG
 from pathlib import Path
@@ -136,6 +136,7 @@ class JSONFileSystem(Operations):
     ):
         self.ignore_appledouble = ignore_appledouble
         self.json_data = json_data
+        self.logger = logger or logging.getLogger(__name__)
         
         # Ensure we have a valid root directory
         if not json_data or len(json_data) == 0 or not isinstance(json_data[0], dict):
@@ -163,7 +164,6 @@ class JSONFileSystem(Operations):
         self.rate_limit = rate_limit
         self.iop_limit = iop_limit
         self.report = report
-        self.logger = logger or logging.getLogger(__name__)
         self.block_size = block_size
         self.pre_generated_blocks = pre_generated_blocks
             
@@ -192,14 +192,6 @@ class JSONFileSystem(Operations):
 
         # Generate block cache
         self.block_cache = self._generate_block_cache()
-
-        # Pre-generate read buffers for fill_char mode
-        if self.fill_mode == FILL_CHAR_MODE:
-            self.read_buffers = {
-                4096: fill_char.encode() * 4096,
-                8192: fill_char.encode() * 8192,
-                16384: fill_char.encode() * 16384,
-            }
 
         self.logger.info("Initializing JSONFileSystem")
         self.logger.info(f"Fill mode: {self.fill_mode}")
@@ -333,9 +325,13 @@ class JSONFileSystem(Operations):
         while True:
             time.sleep(1)  # Report every second
             with self.stats_lock:
-                print(f"IOPS: {self.iops_count}, Data transferred: {humanize_bytes(self.bytes_read)}/s ({self.bytes_read} B/s)")
+                # Copy values before resetting to avoid losing counts
+                iops = self.iops_count
+                bytes_read = self.bytes_read
                 self.iops_count = 0
                 self.bytes_read = 0
+            # Print outside the lock to minimize lock time
+            print(f"IOPS: {iops}, Data transferred: {humanize_bytes(bytes_read)}/s ({bytes_read} B/s)")
 
     def _print_structure(self, item, depth=0, max_depth=2):
         """Print the structure of the filesystem (for debugging)."""
@@ -414,6 +410,11 @@ class JSONFileSystem(Operations):
         normalized_path = self._sanitize_path(path)
         return self.path_map.get(normalized_path)
 
+    @lru_cache(maxsize=1000)
+    def _get_fill_buffer(self, size):
+        """Generate and cache fill buffers for specific sizes."""
+        return self.fill_char.encode() * size
+
     def _generate_block_data(self, path, block):
         """
         Retrieve pre-generated data for a specific block of a file.
@@ -440,9 +441,7 @@ class JSONFileSystem(Operations):
         self.logger.debug(f"Returning {read_size} bytes of data")
 
         if self.fill_mode == FILL_CHAR_MODE:
-            if read_size in self.read_buffers:
-                return self.read_buffers[read_size]
-            return self.fill_char.encode() * read_size
+            return self._get_fill_buffer(read_size)
         elif self.fill_mode == SEMI_RANDOM_MODE:
             start_block = offset // self.block_size
             end_block = (offset + read_size - 1) // self.block_size
