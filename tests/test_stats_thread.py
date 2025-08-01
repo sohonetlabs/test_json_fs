@@ -144,7 +144,7 @@ class TestStatsReporting:
         """Test that stats are reset after reporting."""
         json_data = [
             {
-                "type": "directory", 
+                "type": "directory",
                 "name": "/",
                 "contents": [
                     {"type": "file", "name": "test.txt", "size": 100}

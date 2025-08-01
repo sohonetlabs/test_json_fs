@@ -28,12 +28,14 @@ if sys.platform == "darwin":
             lib_path = find_library(lib_name)
             if lib_path:
                 os.environ["FUSE_LIBRARY_PATH"] = lib_path
-                print(f"Found FUSE library: {lib_name} at {lib_path}")
+                # Use a temporary logger since we're at module level
+                temp_logger = logging.getLogger(__name__)
+                temp_logger.info(f"Found FUSE library: {lib_name} at {lib_path}")
                 break
 # we have to imprt fuse after setting the FUSE_LIBRARY_PATH
 from fuse import FUSE, FuseOSError, Operations
 
-__version__ = "1.6.6"
+__version__ = "1.6.7"
 
 # Constants for fill modes
 FILL_CHAR_MODE = "fill_char"
@@ -98,10 +100,28 @@ def parse_size(size):
     if isinstance(size, int):
         return size
 
-    if size[-1] in units:
-        return int(size[:-1]) * units[size[-1]]
+    # Convert to string and validate
+    size_str = str(size).strip()
+    if not size_str:
+        raise ValueError("Size cannot be empty")
 
-    return int(size)
+    # Check if last character is a unit
+    if size_str[-1] in units:
+        numeric_part = size_str[:-1]
+        if not numeric_part:
+            raise ValueError(f"Invalid size format: '{size}' - missing numeric part")
+        try:
+            return int(numeric_part) * units[size_str[-1]]
+        except ValueError as e:
+            if "invalid literal for int()" in str(e):
+                raise ValueError(f"Invalid size format: '{size}' - numeric part must be an integer")
+            raise
+
+    # Try to parse as plain integer
+    try:
+        return int(size_str)
+    except ValueError:
+        raise ValueError(f"Invalid size format: '{size}' - must be an integer or integer with unit (K, M, G, etc.)")
 
 
 def _unicode_to_named_entities(s):
@@ -137,6 +157,31 @@ class JSONFileSystem(Operations):
         self.ignore_appledouble = ignore_appledouble
         self.json_data = json_data
         self.logger = logger or logging.getLogger(__name__)
+        
+        # Validate constructor parameters
+        if not isinstance(fill_char, str) or len(fill_char) != 1:
+            raise ValueError("fill_char must be a single character string")
+        
+        if fill_mode not in [FILL_CHAR_MODE, SEMI_RANDOM_MODE]:
+            raise ValueError(f"fill_mode must be '{FILL_CHAR_MODE}' or '{SEMI_RANDOM_MODE}'")
+        
+        if not isinstance(rate_limit, (int, float)) or rate_limit < 0:
+            raise ValueError("rate_limit must be a non-negative number")
+        
+        if not isinstance(iop_limit, (int, float)) or iop_limit < 0:
+            raise ValueError("iop_limit must be a non-negative number")
+        
+        if not isinstance(block_size, int) or block_size <= 0:
+            raise ValueError("block_size must be a positive integer")
+        
+        if not isinstance(pre_generated_blocks, int) or pre_generated_blocks <= 0:
+            raise ValueError("pre_generated_blocks must be a positive integer")
+        
+        if seed is not None and not isinstance(seed, int):
+            raise ValueError("seed must be an integer or None")
+        
+        if unicode_normalization not in ["NFC", "NFD", "NFKC", "NFKD", "none"]:
+            raise ValueError("unicode_normalization must be one of: NFC, NFD, NFKC, NFKD, none")
         
         # Ensure we have a valid root directory
         if not json_data or len(json_data) == 0 or not isinstance(json_data[0], dict):
