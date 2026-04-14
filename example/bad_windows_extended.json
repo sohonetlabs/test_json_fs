@@ -1,0 +1,513 @@
+[
+  {
+    "type": "directory",
+    "name": "windows_extended_edge_cases",
+    "size": 0,
+    "contents": [
+      {
+        "type": "file",
+        "name": "CON.txt",
+        "size": 0,
+        "invalid_reason": "Reserved device name with extension — Windows strips the extension before checking reservations, so CON.txt is just as reserved as CON"
+      },
+      {
+        "type": "file",
+        "name": "CON.bat",
+        "size": 0,
+        "invalid_reason": "Reserved device name with .bat extension"
+      },
+      {
+        "type": "file",
+        "name": "CON.log",
+        "size": 0,
+        "invalid_reason": "Reserved device name with .log extension"
+      },
+      {
+        "type": "file",
+        "name": "PRN.log",
+        "size": 0,
+        "invalid_reason": "Reserved device name with extension"
+      },
+      {
+        "type": "file",
+        "name": "PRN.bat",
+        "size": 0,
+        "invalid_reason": "Reserved device name with extension"
+      },
+      {
+        "type": "file",
+        "name": "NUL.txt",
+        "size": 0,
+        "invalid_reason": "Reserved device name with extension"
+      },
+      {
+        "type": "file",
+        "name": "NUL.dat",
+        "size": 0,
+        "invalid_reason": "Reserved device name with extension"
+      },
+      {
+        "type": "file",
+        "name": "AUX.cfg",
+        "size": 0,
+        "invalid_reason": "Reserved device name with extension"
+      },
+      {
+        "type": "file",
+        "name": "COM1.txt",
+        "size": 0,
+        "invalid_reason": "Reserved serial port with extension"
+      },
+      {
+        "type": "file",
+        "name": "COM1.prn",
+        "size": 0,
+        "invalid_reason": "Reserved serial port with extension"
+      },
+      {
+        "type": "file",
+        "name": "COM9.txt",
+        "size": 0,
+        "invalid_reason": "Upper-boundary COM9 with extension — COM1-COM9 are all reserved"
+      },
+      {
+        "type": "file",
+        "name": "LPT1.prn",
+        "size": 0,
+        "invalid_reason": "Reserved parallel port with extension"
+      },
+      {
+        "type": "file",
+        "name": "LPT1.log",
+        "size": 0,
+        "invalid_reason": "Reserved parallel port with extension"
+      },
+      {
+        "type": "file",
+        "name": "LPT9.log",
+        "size": 0,
+        "invalid_reason": "Upper-boundary LPT9 with extension — LPT1-LPT9 are all reserved"
+      },
+
+      {
+        "type": "file",
+        "name": "CON.",
+        "size": 0,
+        "invalid_reason": "Double-strip trap — Windows strips the trailing dot first, then the reservation check fires on the bare CON"
+      },
+      {
+        "type": "file",
+        "name": "NUL.",
+        "size": 0,
+        "invalid_reason": "Double-strip trap — NUL. variant"
+      },
+      {
+        "type": "file",
+        "name": "PRN.",
+        "size": 0,
+        "invalid_reason": "Double-strip trap — PRN. variant"
+      },
+      {
+        "type": "file",
+        "name": "CON ",
+        "size": 0,
+        "invalid_reason": "Double-strip trap — trailing space stripped, then reserved check"
+      },
+      {
+        "type": "file",
+        "name": "CON . . .",
+        "size": 0,
+        "invalid_reason": "Multi-strip trap — all trailing dots and spaces stripped, leaves reserved CON"
+      },
+
+      {
+        "type": "file",
+        "name": "document.txt:hidden_stream",
+        "size": 0,
+        "invalid_reason": "NTFS Alternate Data Stream — the base filename is document.txt, with a secondary data stream named hidden_stream. Many extraction tools lose or mis-handle the stream portion"
+      },
+      {
+        "type": "file",
+        "name": "image.jpg:Zone.Identifier",
+        "size": 0,
+        "invalid_reason": "NTFS ADS for Mark-of-the-Web — the stream Windows attaches to downloaded files to record their origin. Tools that preserve ADS must preserve this; tools that strip it silently lose security metadata"
+      },
+      {
+        "type": "file",
+        "name": "file.txt::$DATA",
+        "size": 0,
+        "invalid_reason": "NTFS ADS explicit $DATA type — file.txt::$DATA is equivalent to file.txt on NTFS. Archive tools that don't canonicalise stream names can create duplicate-looking entries"
+      },
+      {
+        "type": "file",
+        "name": "CON:stream",
+        "size": 0,
+        "invalid_reason": "Reserved device name with ADS suffix — compounds the reserved-name check with the stream-split parser"
+      },
+      {
+        "type": "file",
+        "name": "file.txt:ads:$DATA",
+        "size": 0,
+        "invalid_reason": "ADS with explicit stream type specifier — parsers that split only on the first colon vs the last get different filenames"
+      },
+      {
+        "type": "file",
+        "name": ":anonymous_stream",
+        "size": 0,
+        "invalid_reason": "Filename starting with colon — tools that interpret leading colons as empty-base ADS references produce a zero-length base filename"
+      },
+
+      {
+        "type": "file",
+        "name": "$MFT",
+        "size": 0,
+        "invalid_reason": "NTFS Master File Table metafile — reserved at the volume level. An archive extracted to an NTFS root containing this name can confuse volume tools"
+      },
+      {
+        "type": "file",
+        "name": "$MFTMirr",
+        "size": 0,
+        "invalid_reason": "NTFS MFT mirror metafile"
+      },
+      {
+        "type": "file",
+        "name": "$LogFile",
+        "size": 0,
+        "invalid_reason": "NTFS transaction log metafile"
+      },
+      {
+        "type": "file",
+        "name": "$Volume",
+        "size": 0,
+        "invalid_reason": "NTFS volume descriptor metafile"
+      },
+      {
+        "type": "file",
+        "name": "$AttrDef",
+        "size": 0,
+        "invalid_reason": "NTFS attribute definition metafile"
+      },
+      {
+        "type": "file",
+        "name": "$Bitmap",
+        "size": 0,
+        "invalid_reason": "NTFS allocation bitmap metafile"
+      },
+      {
+        "type": "file",
+        "name": "$Boot",
+        "size": 0,
+        "invalid_reason": "NTFS boot sector metafile"
+      },
+      {
+        "type": "file",
+        "name": "$BadClus",
+        "size": 0,
+        "invalid_reason": "NTFS bad cluster list metafile"
+      },
+      {
+        "type": "file",
+        "name": "$Secure",
+        "size": 0,
+        "invalid_reason": "NTFS security descriptor metafile"
+      },
+      {
+        "type": "file",
+        "name": "$UpCase",
+        "size": 0,
+        "invalid_reason": "NTFS uppercase conversion table metafile"
+      },
+      {
+        "type": "file",
+        "name": "$Extend",
+        "size": 0,
+        "invalid_reason": "NTFS extended metafile directory"
+      },
+      {
+        "type": "file",
+        "name": "$Quota",
+        "size": 0,
+        "invalid_reason": "NTFS quota metafile (inside $Extend)"
+      },
+      {
+        "type": "file",
+        "name": "$ObjId",
+        "size": 0,
+        "invalid_reason": "NTFS object ID metafile (inside $Extend)"
+      },
+      {
+        "type": "file",
+        "name": "$Reparse",
+        "size": 0,
+        "invalid_reason": "NTFS reparse point metafile (inside $Extend)"
+      },
+      {
+        "type": "file",
+        "name": "$UsnJrnl",
+        "size": 0,
+        "invalid_reason": "NTFS USN change journal metafile"
+      },
+
+      {
+        "type": "file",
+        "name": "control_\u0001_SOH",
+        "size": 0,
+        "invalid_reason": "Control character U+0001 (Start of Heading) — forbidden in NTFS filenames (0x01–0x1F all forbidden)"
+      },
+      {
+        "type": "file",
+        "name": "control_\u0009_HT",
+        "size": 0,
+        "invalid_reason": "Control character U+0009 (Horizontal Tab) — forbidden in NTFS filenames"
+      },
+      {
+        "type": "file",
+        "name": "control_\u000a_LF",
+        "size": 0,
+        "invalid_reason": "Control character U+000A (Line Feed) — forbidden in NTFS, also breaks tar output line-parsing"
+      },
+      {
+        "type": "file",
+        "name": "control_\u000d_CR",
+        "size": 0,
+        "invalid_reason": "Control character U+000D (Carriage Return) — forbidden in NTFS"
+      },
+      {
+        "type": "file",
+        "name": "control_\u001b_ESC",
+        "size": 0,
+        "invalid_reason": "Control character U+001B (Escape) — forbidden in NTFS, enables terminal-escape injection if printed"
+      },
+      {
+        "type": "file",
+        "name": "control_\u001f_US",
+        "size": 0,
+        "invalid_reason": "Control character U+001F (Unit Separator, upper boundary of 0x00–0x1F forbidden range)"
+      },
+
+      {
+        "type": "file",
+        "name": "boot.ini",
+        "size": 0,
+        "invalid_reason": "Legacy Windows boot loader configuration file — Windows-protected in boot contexts"
+      },
+      {
+        "type": "file",
+        "name": "config.sys",
+        "size": 0,
+        "invalid_reason": "DOS/Windows system configuration file — legacy system-reserved"
+      },
+      {
+        "type": "file",
+        "name": "autoexec.bat",
+        "size": 0,
+        "invalid_reason": "DOS/Windows autoexec batch file — legacy system-reserved"
+      },
+      {
+        "type": "file",
+        "name": "ntldr",
+        "size": 0,
+        "invalid_reason": "Windows NT boot loader — system-reserved"
+      },
+      {
+        "type": "file",
+        "name": "ntdetect.com",
+        "size": 0,
+        "invalid_reason": "Windows NT hardware detection binary — system-reserved"
+      },
+      {
+        "type": "file",
+        "name": "msdos.sys",
+        "size": 0,
+        "invalid_reason": "Legacy MS-DOS system file"
+      },
+      {
+        "type": "file",
+        "name": "io.sys",
+        "size": 0,
+        "invalid_reason": "Legacy MS-DOS system file"
+      },
+      {
+        "type": "file",
+        "name": "command.com",
+        "size": 0,
+        "invalid_reason": "Legacy MS-DOS command interpreter"
+      },
+      {
+        "type": "file",
+        "name": "bootmgr.efi",
+        "size": 0,
+        "invalid_reason": "UEFI boot manager binary — the modern counterpart to the bootmgr entry in bad_windows.json"
+      },
+
+      {
+        "type": "file",
+        "name": "Autorun.inf",
+        "size": 0,
+        "invalid_reason": "Windows autorun descriptor — historically exploited for drive-by execution on removable media"
+      },
+      {
+        "type": "file",
+        "name": "autorun.inf",
+        "size": 0,
+        "invalid_reason": "Autorun.inf lowercase variant — NTFS case-preserves but Windows is case-insensitive, so both resolve to the same file"
+      },
+      {
+        "type": "file",
+        "name": "desktop.ini",
+        "size": 0,
+        "invalid_reason": "Windows folder-customisation descriptor — legal but special-cased by Explorer"
+      },
+      {
+        "type": "file",
+        "name": "ntuser.dat",
+        "size": 0,
+        "invalid_reason": "User registry hive — locked by Windows when user is logged in"
+      },
+      {
+        "type": "file",
+        "name": "ntuser.dat.LOG",
+        "size": 0,
+        "invalid_reason": "User registry hive transaction log"
+      },
+      {
+        "type": "file",
+        "name": "ntuser.dat.LOG1",
+        "size": 0,
+        "invalid_reason": "User registry hive transaction log variant"
+      },
+
+      {
+        "type": "file",
+        "name": "PROGRA~1",
+        "size": 0,
+        "invalid_reason": "8.3 short name for Program Files — Windows auto-generates this; an archive containing this literal name collides with the kernel-generated short name"
+      },
+      {
+        "type": "file",
+        "name": "DOCUME~1",
+        "size": 0,
+        "invalid_reason": "8.3 short name — Windows auto-generated this for the legacy \"Documents and Settings\" directory"
+      },
+      {
+        "type": "file",
+        "name": "MYLONG~1",
+        "size": 0,
+        "invalid_reason": "8.3 short name pattern — the ~N suffix is how NTFS disambiguates collisions"
+      },
+      {
+        "type": "file",
+        "name": "TEST~123",
+        "size": 0,
+        "invalid_reason": "8.3 short name pattern with multi-digit disambiguation"
+      },
+
+      {
+        "type": "file",
+        "name": "\\\\?\\LongPath",
+        "size": 0,
+        "invalid_reason": "UNC path prefix \\\\?\\ — Windows uses this to opt into the 32K-character path limit. A filename starting with this literal is legal on POSIX but tools that parse it as a UNC prefix get confused"
+      },
+      {
+        "type": "file",
+        "name": "\\\\.\\PhysicalDrive0",
+        "size": 0,
+        "invalid_reason": "Device namespace prefix \\\\.\\ — Windows uses this to access raw devices"
+      },
+      {
+        "type": "file",
+        "name": "\\\\server\\share",
+        "size": 0,
+        "invalid_reason": "UNC network path pattern — Windows tools attempt to resolve as a share"
+      },
+      {
+        "type": "file",
+        "name": "\\\\LOCALHOST\\C$",
+        "size": 0,
+        "invalid_reason": "UNC admin share pattern — legitimate on Windows, problematic as a literal filename"
+      },
+
+      {
+        "type": "file",
+        "name": "%WINDIR%",
+        "size": 0,
+        "invalid_reason": "Environment variable lookalike — tools that %-expand filenames will substitute the Windows directory path"
+      },
+      {
+        "type": "file",
+        "name": "%USERPROFILE%",
+        "size": 0,
+        "invalid_reason": "Environment variable lookalike — expands to the user's profile directory"
+      },
+      {
+        "type": "file",
+        "name": "%ProgramFiles%",
+        "size": 0,
+        "invalid_reason": "Environment variable lookalike — expands to the program files directory"
+      },
+      {
+        "type": "file",
+        "name": "%SystemRoot%",
+        "size": 0,
+        "invalid_reason": "Environment variable lookalike"
+      },
+
+      {
+        "type": "file",
+        "name": "file&calc.exe",
+        "size": 0,
+        "invalid_reason": "Batch-file command separator & in filename — cmd.exe interprets this as a command chain"
+      },
+      {
+        "type": "file",
+        "name": "file^notepad",
+        "size": 0,
+        "invalid_reason": "Batch-file escape character ^ in filename — cmd.exe uses ^ as line continuation and escape"
+      },
+      {
+        "type": "file",
+        "name": "file;calc",
+        "size": 0,
+        "invalid_reason": "PowerShell / batch command separator in filename"
+      },
+
+      {
+        "type": "file",
+        "name": "C:",
+        "size": 0,
+        "invalid_reason": "Drive letter reference as filename — Windows treats C: as the current directory on drive C, not a file named C:"
+      },
+      {
+        "type": "file",
+        "name": "D:",
+        "size": 0,
+        "invalid_reason": "Drive letter reference"
+      },
+      {
+        "type": "file",
+        "name": "A:",
+        "size": 0,
+        "invalid_reason": "Drive letter reference — historically the floppy drive"
+      },
+      {
+        "type": "file",
+        "name": "COM:",
+        "size": 0,
+        "invalid_reason": "Reserved device prefix with trailing colon — parses as a drive-letter reference to a device rather than a filename"
+      },
+
+      {
+        "type": "file",
+        "name": " . . . ",
+        "size": 0,
+        "invalid_reason": "All-dots-and-spaces name — Windows strips trailing dots and spaces; this name strips to empty and gets rejected. Infinite-loop candidate in path-normalising code"
+      },
+      {
+        "type": "file",
+        "name": "    ",
+        "size": 0,
+        "invalid_reason": "All-spaces name (longer than the 3-space variant in bad_windows.json) — Windows strips all of them, leaving empty"
+      }
+    ]
+  }
+]

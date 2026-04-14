@@ -234,6 +234,46 @@ For testing tar all the files in one directory of sizes between 0 and 1024
 
 Fuzzing systems with file names, based on https://github.com/minimaxir/big-list-of-naughty-strings/blob/master/blns.txt
 
+### bad\_windows\_extended.json
+
+Windows-specific filename edge cases missing from bad\_windows.json: reserved names with extensions, NTFS alternate data stream syntax, NTFS metafiles, the full 0x01-0x1F control-char range, UNC prefixes, 8.3 short-name collisions, and trailing-dot double-strip traps.
+
+### archive\_torture\_filename\_lengths.json
+
+Filenames at the byte lengths where tar/ustar/cpio/zip parsers switch between inline and extended header forms (99/100/101, 154/155/156, 254/255).
+
+### archive\_torture\_path\_lengths.json
+
+Nested directories whose total path length hits tar block, legacy buffer, Linux PATH\_MAX (4096), and macOS PATH\_MAX (1024) boundaries. Files past macOS PATH\_MAX are unreachable by absolute-path lookup but still reachable by tar via openat traversal — the intended stress case.
+
+### archive\_torture\_format\_sentinels.json
+
+Filenames that look like internal markers in tar, ZIP/JAR/EPUB/OOXML, XAR, Debian .deb, OCI/Docker, plus nested directory layouts mirroring real archive contents (META-INF, WEB-INF, OEBPS, debian, .git).
+
+### archive\_torture\_size\_boundaries\_small.json
+
+File sizes at block, page and buffer boundaries up to 16 KiB. Total ~96 KiB — safe for routine sweeps.
+
+### archive\_torture\_size\_boundaries\_medium.json
+
+Writer-buffering stress at 1 MiB, 16 MiB, 128 MiB (± 1 byte each). Total ~435 MiB.
+
+### archive\_torture\_size\_boundaries\_large.json
+
+File sizes at int32 / uint32 / int64 / ustar-octal overflow points (2^31 ± 1, 2^32 ± 1, 8 GiB – 1). Total ~24 GiB of synthesised content — run deliberately.
+
+### archive\_torture\_evil\_filenames.json
+
+Filenames targeting layer-transition bugs: tar flag injection, shell substitution, newline in filename, bidi override phishing, terminal escapes, NFC/NFD collisions, Unicode noncharacters, Windows-reserved names, leading-dash argv injection, zero-width characters.
+
+### archive\_torture\_mojibake\_traps.json
+
+Filenames whose UTF-8 byte sequences decode as valid-but-different text in CP1252, Shift-JIS/CP932 or MacRoman, plus UTF-8 BOM-prefix sniffer confusion and UCS-2 truncation traps.
+
+### generate\_archive\_torture.py
+
+Generator for the eight archive\_torture\_\*.json files above. Run `python3 example/generate_archive_torture.py` to regenerate. The module docstring covers platform behaviour (macOS NFS-client NFD normalisation, fuse-t NAME\_MAX, Unicode-vs-raw-bytes limits).
+
 
 ## example :-
 

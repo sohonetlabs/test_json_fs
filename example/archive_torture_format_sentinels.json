@@ -1,0 +1,647 @@
+[
+  {
+    "type": "directory",
+    "name": "./",
+    "size": 4096,
+    "contents": [
+      {
+        "type": "file",
+        "name": "pax_global_header",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "PaxHeader",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "TRAILER!!!",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "mimetype",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "[Content_Types].xml",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "MANIFEST.MF",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "SIG-INF.SF",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "CERT.RSA",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "CERT.DSA",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "module-info.class",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "versions",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "Bom",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "PackageInfo",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "Distribution",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "Payload",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "Scripts",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "Resources",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "Preinstall",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "Postinstall",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "Preupgrade",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "Postupgrade",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "debian-binary",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "control.tar.gz",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "control.tar.xz",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "control.tar.zst",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "data.tar.gz",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "data.tar.xz",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "data.tar.zst",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "_gpgorigin",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "_gpgbuilder",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "manifest.json",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "config.json",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "oci-layout",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "index.json",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "repositories",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "layer.tar",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "setup.exe",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "setup.dll",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "setup.inf",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "WSUSSCAN.cab",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "Data1.cab",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "MSI.cab",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "layout.bin",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "._normal_file",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "._",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": ".DS_Store",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": ".metadata_never_index",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": ".metadata_never_index_unless_rootfs",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": ".Spotlight-V100",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "Thumbs.db",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "desktop.ini",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "CON",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "PRN",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "AUX",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "NUL",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "COM1",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "LPT1",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "-rf",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "--help",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "-",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "$HOME",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "$(whoami)",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "`id`",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "PK\u0003\u0004fake_zip_magic",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "Rar!\u001a\u0007fake_rar4_magic",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "Rar!\u001a\u0007\u0001fake_rar5_magic",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "MSCFfake_cab_magic",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "xar!fake_xar_magic",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "BZhfake_bzip2_magic",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "trailing_space ",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "trailing_dot.",
+        "size": 0
+      },
+      {
+        "type": "directory",
+        "name": ".git",
+        "size": 4096,
+        "contents": [
+          {
+            "type": "file",
+            "name": "HEAD",
+            "size": 0
+          },
+          {
+            "type": "directory",
+            "name": "objects",
+            "size": 4096,
+            "contents": [
+              {
+                "type": "directory",
+                "name": "pack",
+                "size": 4096,
+                "contents": [
+                  {
+                    "type": "file",
+                    "name": "pack-0000.idx",
+                    "size": 0
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "directory",
+            "name": "refs",
+            "size": 4096,
+            "contents": [
+              {
+                "type": "directory",
+                "name": "heads",
+                "size": 4096,
+                "contents": [
+                  {
+                    "type": "file",
+                    "name": "main",
+                    "size": 0
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "directory",
+        "name": "META-INF",
+        "size": 4096,
+        "contents": [
+          {
+            "type": "file",
+            "name": "MANIFEST.MF",
+            "size": 0
+          },
+          {
+            "type": "file",
+            "name": "INDEX.LIST",
+            "size": 0
+          },
+          {
+            "type": "file",
+            "name": "container.xml",
+            "size": 0
+          },
+          {
+            "type": "file",
+            "name": "encryption.xml",
+            "size": 0
+          },
+          {
+            "type": "directory",
+            "name": "maven",
+            "size": 4096,
+            "contents": [
+              {
+                "type": "directory",
+                "name": "com.example",
+                "size": 4096,
+                "contents": [
+                  {
+                    "type": "directory",
+                    "name": "artifact",
+                    "size": 4096,
+                    "contents": [
+                      {
+                        "type": "file",
+                        "name": "pom.xml",
+                        "size": 0
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "directory",
+            "name": "services",
+            "size": 4096,
+            "contents": [
+              {
+                "type": "file",
+                "name": "java.util.spi.ResourceBundleControlProvider",
+                "size": 0
+              }
+            ]
+          },
+          {
+            "type": "directory",
+            "name": "versions",
+            "size": 4096,
+            "contents": [
+              {
+                "type": "directory",
+                "name": "9",
+                "size": 4096,
+                "contents": [
+                  {
+                    "type": "file",
+                    "name": "module-info.class",
+                    "size": 0
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "directory",
+        "name": "OEBPS",
+        "size": 4096,
+        "contents": [
+          {
+            "type": "file",
+            "name": "content.opf",
+            "size": 0
+          },
+          {
+            "type": "file",
+            "name": "toc.ncx",
+            "size": 0
+          }
+        ]
+      },
+      {
+        "type": "directory",
+        "name": "WEB-INF",
+        "size": 4096,
+        "contents": [
+          {
+            "type": "file",
+            "name": "web.xml",
+            "size": 0
+          },
+          {
+            "type": "directory",
+            "name": "classes",
+            "size": 4096,
+            "contents": [
+              {
+                "type": "file",
+                "name": "Main.class",
+                "size": 0
+              }
+            ]
+          },
+          {
+            "type": "directory",
+            "name": "lib",
+            "size": 4096,
+            "contents": [
+              {
+                "type": "file",
+                "name": "library.jar",
+                "size": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "directory",
+        "name": "__MACOSX",
+        "size": 4096,
+        "contents": [
+          {
+            "type": "file",
+            "name": "._sidecar_file",
+            "size": 0
+          }
+        ]
+      },
+      {
+        "type": "directory",
+        "name": "_rels",
+        "size": 4096,
+        "contents": [
+          {
+            "type": "file",
+            "name": ".rels",
+            "size": 0
+          }
+        ]
+      },
+      {
+        "type": "directory",
+        "name": "blobs",
+        "size": 4096,
+        "contents": [
+          {
+            "type": "directory",
+            "name": "sha256",
+            "size": 4096,
+            "contents": [
+              {
+                "type": "file",
+                "name": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+                "size": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "directory",
+        "name": "debian",
+        "size": 4096,
+        "contents": [
+          {
+            "type": "file",
+            "name": "control",
+            "size": 0
+          },
+          {
+            "type": "file",
+            "name": "rules",
+            "size": 0
+          },
+          {
+            "type": "file",
+            "name": "changelog",
+            "size": 0
+          },
+          {
+            "type": "directory",
+            "name": "source",
+            "size": 4096,
+            "contents": [
+              {
+                "type": "file",
+                "name": "format",
+                "size": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "directory",
+        "name": "word",
+        "size": 4096,
+        "contents": [
+          {
+            "type": "directory",
+            "name": "_rels",
+            "size": 4096,
+            "contents": [
+              {
+                "type": "file",
+                "name": "document.xml.rels",
+                "size": 0
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]

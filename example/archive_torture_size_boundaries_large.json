@@ -1,0 +1,39 @@
+[
+  {
+    "type": "directory",
+    "name": "./",
+    "size": 4096,
+    "contents": [
+      {
+        "type": "file",
+        "name": "size_0008589934591",
+        "size": 8589934591
+      },
+      {
+        "type": "file",
+        "name": "size_0002147483647",
+        "size": 2147483647
+      },
+      {
+        "type": "file",
+        "name": "size_0002147483648",
+        "size": 2147483648
+      },
+      {
+        "type": "file",
+        "name": "size_0004294967295",
+        "size": 4294967295
+      },
+      {
+        "type": "file",
+        "name": "size_0004294967296",
+        "size": 4294967296
+      },
+      {
+        "type": "file",
+        "name": "size_0004294967297",
+        "size": 4294967297
+      }
+    ]
+  }
+]

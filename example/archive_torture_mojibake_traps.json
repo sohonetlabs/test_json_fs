@@ -1,0 +1,64 @@
+[
+  {
+    "type": "directory",
+    "name": "./",
+    "size": 4096,
+    "contents": [
+      {
+        "type": "file",
+        "name": "caf\u00e9.txt",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "caf\u00c3\u00a9.txt",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "\ufefffile.txt",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "path\u00a5separator.txt",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "price_\u20ac_euro.txt",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "cjk\uff3csolidus.txt",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "nbsp\u00a0trap.txt",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "caf\u00c3\u0083\u00c2\u00a9.txt",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "halfwidth_\uff71\uff72\uff73.txt",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "emoji_\ud83d\ude00_smiley.txt",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "double_\u00c3\u00a9_encoded.txt",
+        "size": 0
+      }
+    ]
+  }
+]
