@@ -2,7 +2,6 @@ import argparse
 import hashlib
 import json
 import logging
-import platform
 import random
 import sys
 import threading
@@ -114,14 +113,18 @@ def parse_size(size):
             return int(numeric_part) * units[size_str[-1]]
         except ValueError as e:
             if "invalid literal for int()" in str(e):
-                raise ValueError(f"Invalid size format: '{size}' - numeric part must be an integer")
+                raise ValueError(
+                    f"Invalid size format: '{size}' - numeric part must be an integer"
+                )
             raise
 
     # Try to parse as plain integer
     try:
         return int(size_str)
     except ValueError:
-        raise ValueError(f"Invalid size format: '{size}' - must be an integer or integer with unit (K, M, G, etc.)")
+        raise ValueError(
+            f"Invalid size format: '{size}' - must be an integer or integer with unit (K, M, G, etc.)"
+        )
 
 
 def _unicode_to_named_entities(s):
@@ -129,7 +132,11 @@ def _unicode_to_named_entities(s):
     # \N { LATIN SMALL LETTER E WITH ACUTE }
     # original: caf\N{LATIN SMALL LETTER E WITH ACUTE}
     return "".join(
-        (f"\\N{{{unicodedata.name(char, f'#{ord(char)}')}}}" if not char.isprintable() or ord(char) > 127 else char)
+        (
+            f"\\N{{{unicodedata.name(char, f'#{ord(char)}')}}}"
+            if not char.isprintable() or ord(char) > 127
+            else char
+        )
         for char in s
     )
 
@@ -157,52 +164,62 @@ class JSONFileSystem(Operations):
         self.ignore_appledouble = ignore_appledouble
         self.json_data = json_data
         self.logger = logger or logging.getLogger(__name__)
-        
+
         # Validate constructor parameters
         if not isinstance(fill_char, str) or len(fill_char) != 1:
             raise ValueError("fill_char must be a single character string")
-        
+
         if fill_mode not in [FILL_CHAR_MODE, SEMI_RANDOM_MODE]:
-            raise ValueError(f"fill_mode must be '{FILL_CHAR_MODE}' or '{SEMI_RANDOM_MODE}'")
-        
+            raise ValueError(
+                f"fill_mode must be '{FILL_CHAR_MODE}' or '{SEMI_RANDOM_MODE}'"
+            )
+
         if not isinstance(rate_limit, (int, float)) or rate_limit < 0:
             raise ValueError("rate_limit must be a non-negative number")
-        
+
         if not isinstance(iop_limit, (int, float)) or iop_limit < 0:
             raise ValueError("iop_limit must be a non-negative number")
-        
+
         if not isinstance(block_size, int) or block_size <= 0:
             raise ValueError("block_size must be a positive integer")
-        
+
         if not isinstance(pre_generated_blocks, int) or pre_generated_blocks <= 0:
             raise ValueError("pre_generated_blocks must be a positive integer")
-        
+
         if seed is not None and not isinstance(seed, int):
             raise ValueError("seed must be an integer or None")
-        
+
         if unicode_normalization not in ["NFC", "NFD", "NFKC", "NFKD", "none"]:
-            raise ValueError("unicode_normalization must be one of: NFC, NFD, NFKC, NFKD, none")
-        
+            raise ValueError(
+                "unicode_normalization must be one of: NFC, NFD, NFKC, NFKD, none"
+            )
+
         # Ensure we have a valid root directory
         if not json_data or len(json_data) == 0 or not isinstance(json_data[0], dict):
-            raise ValueError("JSON data must contain at least one item which must be a dictionary")
-        
+            raise ValueError(
+                "JSON data must contain at least one item which must be a dictionary"
+            )
+
         self.root = json_data[0]  # The first item should be the root directory
-        
+
         # Ensure root is a directory with required fields
         if self.root.get("type") != "directory":
             raise ValueError("First item in JSON data must be a directory")
-            
+
         # Ensure name field exists
         if "name" not in self.root:
-            self.logger.warning("Root directory missing 'name' field, defaulting to '/'")
+            self.logger.warning(
+                "Root directory missing 'name' field, defaulting to '/'"
+            )
             self.root["name"] = "/"
-            
+
         # Ensure contents field exists
         if "contents" not in self.root:
-            self.logger.warning("Root directory missing 'contents' field, initializing as empty")
+            self.logger.warning(
+                "Root directory missing 'contents' field, initializing as empty"
+            )
             self.root["contents"] = []
-        
+
         self.now = time.time()
         self.fill_mode = fill_mode
         self.fill_char = fill_char
@@ -211,7 +228,7 @@ class JSONFileSystem(Operations):
         self.report = report
         self.block_size = block_size
         self.pre_generated_blocks = pre_generated_blocks
-            
+
         self.uid = uid
         self.gid = gid
         self.mtime = mtime
@@ -226,10 +243,10 @@ class JSONFileSystem(Operations):
         self.iops_count = 0
         self.bytes_read = 0
         self.stats_lock = threading.Lock()
-        
+
         # Rate limiting components
         self.last_op_time = time.time()
-        
+
         # IOP limiting components
         self.iop_window_start = time.time()
         self.iop_window_count = 0
@@ -249,7 +266,9 @@ class JSONFileSystem(Operations):
 
         self.total_size = self._calculate_total_size(self.root)
         self.total_files = self._count_files(self.root)
-        self.logger.info(f"Total size: {humanize_bytes(self.total_size)} ({self.total_size} bytes)")
+        self.logger.info(
+            f"Total size: {humanize_bytes(self.total_size)} ({self.total_size} bytes)"
+        )
         self.logger.info(f"Total files: {self.total_files}")
 
         # Add macOS control files to prevent caching, do not use plaform as we could be sharing the filesystem
@@ -266,7 +285,9 @@ class JSONFileSystem(Operations):
 
     def _generate_block_cache(self):
         """Generate a cache of pre-generated blocks."""
-        self.logger.info(f"Generating {self.pre_generated_blocks} blocks of size {humanize_bytes(self.block_size)}")
+        self.logger.info(
+            f"Generating {self.pre_generated_blocks} blocks of size {humanize_bytes(self.block_size)}"
+        )
         start_generation = time.time()
         cache = []
         for i in range(self.pre_generated_blocks):
@@ -277,7 +298,9 @@ class JSONFileSystem(Operations):
                 block_data[j] = block_seed % 256
             cache.append(bytes(block_data))
         end_generation = time.time()
-        self.logger.info(f"Block cache generation took {end_generation - start_generation:.2f} seconds")
+        self.logger.info(
+            f"Block cache generation took {end_generation - start_generation:.2f} seconds"
+        )
         return cache
 
     def _add_macos_control_files(self):
@@ -291,76 +314,79 @@ class JSONFileSystem(Operations):
                 }
             )
         self.logger.info("Added macOS control files to root directory")
-        self.logger.debug("macOS control files added: " + ", ".join(macos_root_empty_files_to_control_caching))
+        self.logger.debug(
+            "macOS control files added: "
+            + ", ".join(macos_root_empty_files_to_control_caching)
+        )
 
     def _increment_stats(self, bytes_read=0):
         """Increment IOPS and bytes read counters. Apply rate limiting if configured."""
         # First, apply rate limiting if configured
         self._apply_rate_limit()
-        
+
         # Then, apply IOP limiting if configured
         self._apply_iop_limit()
-        
+
         # Finally, update statistics
         with self.stats_lock:
             self.iops_count += 1
             self.bytes_read += bytes_read
-            
+
     def _apply_rate_limit(self):
         """Apply rate limiting to enforce minimum delay between operations.
-        
+
         This method intentionally holds the lock during sleep to enforce a
         global rate limit across all filesystem operations.
         """
         if self.rate_limit <= 0:
             return
-            
+
         with self.stats_lock:
             current_time = time.time()
             time_since_last_op = current_time - self.last_op_time
-            
+
             if time_since_last_op < self.rate_limit:
                 # Intentionally hold the lock while sleeping to enforce a global rate limit
                 # This ensures all operations are separated by at least rate_limit seconds
                 sleep_time = self.rate_limit - time_since_last_op
                 time.sleep(sleep_time)
-                    
+
             # Update the last operation time
             self.last_op_time = time.time()
-    
+
     def _apply_iop_limit(self):
         """Apply IOP limiting to enforce maximum operations per second.
-        
-        This method intentionally holds the lock during sleep to properly 
+
+        This method intentionally holds the lock during sleep to properly
         throttle all operations system-wide to the specified IOPS limit.
         """
         if self.iop_limit <= 0:
             return
-            
+
         with self.iop_limit_lock:
             current_time = time.time()
             # Calculate time elapsed since the window started
             window_elapsed = current_time - self.iop_window_start
-            
+
             # If a full second has elapsed, reset the window
             if window_elapsed >= 1.0:
                 self.iop_window_start = current_time
                 self.iop_window_count = 1  # Count this operation
                 return
-                
+
             # Increment the counter for this operation
             self.iop_window_count += 1
-            
+
             # If we've exceeded the limit, sleep until the window ends
             if self.iop_window_count > self.iop_limit:
                 # Calculate sleep time to reach the end of the current 1-second window
                 sleep_time = 1.0 - window_elapsed
-                
+
                 # Intentionally keep the lock while sleeping to block all operations
                 # This ensures we truly limit to the specified IOPS
                 if sleep_time > 0:
                     time.sleep(sleep_time)
-                    
+
                 # Start a new window
                 self.iop_window_start = time.time()
                 self.iop_window_count = 1  # Count this operation
@@ -376,7 +402,9 @@ class JSONFileSystem(Operations):
                 self.iops_count = 0
                 self.bytes_read = 0
             # Print outside the lock to minimize lock time
-            print(f"IOPS: {iops}, Data transferred: {humanize_bytes(bytes_read)}/s ({bytes_read} B/s)")
+            print(
+                f"IOPS: {iops}, Data transferred: {humanize_bytes(bytes_read)}/s ({bytes_read} B/s)"
+            )
 
     def _print_structure(self, item, depth=0, max_depth=2):
         """Print the structure of the filesystem (for debugging)."""
@@ -390,12 +418,16 @@ class JSONFileSystem(Operations):
             size_str = f"{humanize_bytes(item_size)} ({item_size} bytes)"
         else:
             size_str = str(item_size)
-        self.logger.debug(f"{indent}{item_name} ({item_type}, size: {size_str} {_unicode_to_named_entities(item_name)})")
+        self.logger.debug(
+            f"{indent}{item_name} ({item_type}, size: {size_str} {_unicode_to_named_entities(item_name)})"
+        )
         if item_type == "directory" and "contents" in item:
             for child in item["contents"][:5]:  # Print only first 5 children
                 self._print_structure(child, depth + 1, max_depth)
             if len(item["contents"]) > 5:
-                self.logger.debug(f"{indent}  ... ({len(item['contents']) - 5} more items)")
+                self.logger.debug(
+                    f"{indent}  ... ({len(item['contents']) - 5} more items)"
+                )
 
     def _calculate_total_size(self, item):
         """Calculate the total size of the filesystem."""
@@ -408,7 +440,9 @@ class JSONFileSystem(Operations):
             )
             return size
         elif item_type == "directory":
-            dir_size = sum(self._calculate_total_size(child) for child in item.get("contents", []))
+            dir_size = sum(
+                self._calculate_total_size(child) for child in item.get("contents", [])
+            )
             self.logger.debug(
                 f"Directory: {item_name}, Size: {humanize_bytes(dir_size)} ({dir_size} bytes) {_unicode_to_named_entities(item_name)}"
             )
@@ -466,20 +500,28 @@ class JSONFileSystem(Operations):
         Retrieve pre-generated data for a specific block of a file.
         """
         normalized_path = self._sanitize_path(path)
-        combined = normalized_path + "\x01" + str(block)  # Use \x01 instead of \0 as separator
+        combined = (
+            normalized_path + "\x01" + str(block)
+        )  # Use \x01 instead of \0 as separator
         hash_value = hashlib.md5(combined.encode("utf-8")).digest()
-        cache_index = int.from_bytes(hash_value, byteorder="big") % self.pre_generated_blocks
+        cache_index = (
+            int.from_bytes(hash_value, byteorder="big") % self.pre_generated_blocks
+        )
         return self.block_cache[cache_index]
 
     def read(self, path, size, offset, fh):
         """
         Read data from a file in the virtual filesystem.
         """
-        self.logger.debug(f"read called for path: {path}, size: {size}, offset: {offset}")
+        self.logger.debug(
+            f"read called for path: {path}, size: {size}, offset: {offset}"
+        )
 
         item = self._get_item(path)
         if item is None or item["type"] != "file":
-            self.logger.warning(f"Invalid file path: {path} {_unicode_to_named_entities(path)}")
+            self.logger.warning(
+                f"Invalid file path: {path} {_unicode_to_named_entities(path)}"
+            )
             raise FuseOSError(ENOENT)
 
         read_size = min(size, item.get("size", 0) - offset)
@@ -500,14 +542,18 @@ class JSONFileSystem(Operations):
 
                 # Calculate start and end positions within this block
                 block_start = max(0, offset - block * self.block_size)
-                block_end = min(self.block_size, offset + read_size - block * self.block_size)
+                block_end = min(
+                    self.block_size, offset + read_size - block * self.block_size
+                )
 
                 # Copy required portion of block data
                 chunk = block_data[block_start:block_end]
                 data[data_offset : data_offset + len(chunk)] = chunk
                 data_offset += len(chunk)
 
-            assert len(data) == read_size, f"Data size mismatch: expected {read_size}, got {len(data)}"
+            assert len(data) == read_size, (
+                f"Data size mismatch: expected {read_size}, got {len(data)}"
+            )
             return bytes(data)
 
     def getattr(self, path, fh=None):
@@ -518,7 +564,11 @@ class JSONFileSystem(Operations):
         if item is None:
             # Check if this is an AppleDouble file (starts with ._) and we're ignoring those
             path_basename = os.path.basename(path)
-            if hasattr(self, 'ignore_appledouble') and self.ignore_appledouble and path_basename.startswith('._'):
+            if (
+                hasattr(self, "ignore_appledouble")
+                and self.ignore_appledouble
+                and path_basename.startswith("._")
+            ):
                 # Just quietly fail for AppleDouble files
                 self.logger.debug(f"Ignoring AppleDouble file: {path}")
             else:
@@ -553,7 +603,9 @@ class JSONFileSystem(Operations):
         self.logger.debug(f"readdir called for path: {path}")
         item = self._get_item(path)
         if item is None or item["type"] != "directory":
-            self.logger.warning(f"Invalid directory path: {path} {_unicode_to_named_entities(path)}")
+            self.logger.warning(
+                f"Invalid directory path: {path} {_unicode_to_named_entities(path)}"
+            )
             raise FuseOSError(ENOENT)
 
         yield "."
@@ -653,18 +705,18 @@ class JSONFileSystem(Operations):
     def truncate(self, path, length):
         """Truncate a file (not allowed in read-only filesystem)."""
         raise FuseOSError(EROFS)
-        
+
     def getxattr(self, path, name, position=0):
         """Get an extended attribute (not supported in this filesystem)."""
         # Return ENODATA to indicate attribute doesn't exist
         # This prevents macOS from creating resource fork files
         raise FuseOSError(ENODATA)
-        
+
     def listxattr(self, path):
         """List extended attributes (not supported in this filesystem)."""
         # Return empty list to indicate no attributes
         return []
-        
+
     def setxattr(self, path, name, value, options, position=0):
         """Set an extended attribute (not allowed in read-only filesystem)."""
         # Fail with EROFS (read-only filesystem)
@@ -673,8 +725,12 @@ class JSONFileSystem(Operations):
 
 def main():
     """Main function to set up and run the FUSE filesystem."""
-    parser = argparse.ArgumentParser(description="Mount a JSON file as a read-only filesystem")
-    parser.add_argument("json_file", type=Path, help="Path to the JSON file describing the filesystem")
+    parser = argparse.ArgumentParser(
+        description="Mount a JSON file as a read-only filesystem"
+    )
+    parser.add_argument(
+        "json_file", type=Path, help="Path to the JSON file describing the filesystem"
+    )
     parser.add_argument("mount_point", type=Path, help="Mount point for the filesystem")
     parser.add_argument(
         "--log-level",
@@ -780,7 +836,9 @@ def main():
     log_level = getattr(logging, args.log_level)
     logger = setup_logging(log_level=log_level, log_to_stdout=not args.log_to_syslog)
 
-    logger.info(f"Starting JSONFileSystem version {__version__} with log level: {args.log_level}")
+    logger.info(
+        f"Starting JSONFileSystem version {__version__} with log level: {args.log_level}"
+    )
 
     if args.fill_char and args.semi_random:
         logger.error("Error: Cannot use both --fill-char and --semi-random options.")
@@ -788,12 +846,14 @@ def main():
 
     fill_mode = SEMI_RANDOM_MODE if args.semi_random else FILL_CHAR_MODE
     fill_char = args.fill_char if args.fill_char else "\0"
-    
+
     # Validate fill_char is a single character
     if fill_mode == FILL_CHAR_MODE and len(fill_char) != 1:
-        logger.error(f"Error: fill-char must be exactly one character, got {len(fill_char)} characters: {repr(fill_char)}")
+        logger.error(
+            f"Error: fill-char must be exactly one character, got {len(fill_char)} characters: {repr(fill_char)}"
+        )
         sys.exit(1)
-    
+
     block_size = parse_size(args.block_size)
 
     # Parse the modification time with error handling
@@ -816,42 +876,40 @@ def main():
         logger.error(f"Failed to read JSON file: {args.json_file}")
         logger.error(f"Error details: {e}")
         sys.exit(1)
-        
+
     # Validate JSON structure
     if not json_data or not isinstance(json_data, list):
         logger.error("Invalid JSON format: Root must be a non-empty list")
         sys.exit(1)
-        
+
     if len(json_data) == 0:
         logger.error("Invalid JSON format: No filesystem entries found")
         sys.exit(1)
-        
+
     if not isinstance(json_data[0], dict):
-        logger.error("Invalid JSON format: First entry must be a dictionary (root directory)")
+        logger.error(
+            "Invalid JSON format: First entry must be a dictionary (root directory)"
+        )
         sys.exit(1)
-        
+
     if json_data[0].get("type") != "directory":
         logger.error("Invalid JSON format: First entry must be a directory")
         sys.exit(1)
-        
+
     if "name" not in json_data[0]:
         logger.warning("Root directory missing 'name' field, will use default")
-        
+
     if "contents" not in json_data[0]:
         logger.warning("Root directory missing 'contents' field, will use empty list")
 
     # Prepare mount options
-    mount_options = {
-        'nothreads': True,
-        'foreground': True
-    }
-    
+    mount_options = {"nothreads": True, "foreground": True}
+
     # On macOS, add options to help reduce macOS filesystem-specific behaviors
-    if sys.platform == 'darwin':
+    if sys.platform == "darwin":
         # 'noappledouble' might help with some resource fork behavior
-        mount_options['noappledouble'] = True
- 
-    
+        mount_options["noappledouble"] = True
+
     FUSE(
         JSONFileSystem(
             json_data,
@@ -872,7 +930,7 @@ def main():
             unicode_normalization=args.unicode_normalization,
         ),
         str(args.mount_point),
-        **mount_options
+        **mount_options,
     )
 
 

