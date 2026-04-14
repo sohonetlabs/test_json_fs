@@ -1,0 +1,99 @@
+[
+  {
+    "type": "directory",
+    "name": "./",
+    "size": 4096,
+    "contents": [
+      {
+        "type": "file",
+        "name": "size_00000000",
+        "size": 0
+      },
+      {
+        "type": "file",
+        "name": "size_00000001",
+        "size": 1
+      },
+      {
+        "type": "file",
+        "name": "size_00000002",
+        "size": 2
+      },
+      {
+        "type": "file",
+        "name": "size_00000511",
+        "size": 511
+      },
+      {
+        "type": "file",
+        "name": "size_00000512",
+        "size": 512
+      },
+      {
+        "type": "file",
+        "name": "size_00000513",
+        "size": 513
+      },
+      {
+        "type": "file",
+        "name": "size_00001023",
+        "size": 1023
+      },
+      {
+        "type": "file",
+        "name": "size_00001024",
+        "size": 1024
+      },
+      {
+        "type": "file",
+        "name": "size_00001025",
+        "size": 1025
+      },
+      {
+        "type": "file",
+        "name": "size_00004095",
+        "size": 4095
+      },
+      {
+        "type": "file",
+        "name": "size_00004096",
+        "size": 4096
+      },
+      {
+        "type": "file",
+        "name": "size_00004097",
+        "size": 4097
+      },
+      {
+        "type": "file",
+        "name": "size_00010239",
+        "size": 10239
+      },
+      {
+        "type": "file",
+        "name": "size_00010240",
+        "size": 10240
+      },
+      {
+        "type": "file",
+        "name": "size_00010241",
+        "size": 10241
+      },
+      {
+        "type": "file",
+        "name": "size_00016383",
+        "size": 16383
+      },
+      {
+        "type": "file",
+        "name": "size_00016384",
+        "size": 16384
+      },
+      {
+        "type": "file",
+        "name": "size_00016385",
+        "size": 16385
+      }
+    ]
+  }
+]

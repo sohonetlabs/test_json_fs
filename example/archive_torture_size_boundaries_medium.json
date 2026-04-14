@@ -1,0 +1,54 @@
+[
+  {
+    "type": "directory",
+    "name": "./",
+    "size": 4096,
+    "contents": [
+      {
+        "type": "file",
+        "name": "size_000001048575",
+        "size": 1048575
+      },
+      {
+        "type": "file",
+        "name": "size_000001048576",
+        "size": 1048576
+      },
+      {
+        "type": "file",
+        "name": "size_000001048577",
+        "size": 1048577
+      },
+      {
+        "type": "file",
+        "name": "size_000016777215",
+        "size": 16777215
+      },
+      {
+        "type": "file",
+        "name": "size_000016777216",
+        "size": 16777216
+      },
+      {
+        "type": "file",
+        "name": "size_000016777217",
+        "size": 16777217
+      },
+      {
+        "type": "file",
+        "name": "size_000134217727",
+        "size": 134217727
+      },
+      {
+        "type": "file",
+        "name": "size_000134217728",
+        "size": 134217728
+      },
+      {
+        "type": "file",
+        "name": "size_000134217729",
+        "size": 134217729
+      }
+    ]
+  }
+]
