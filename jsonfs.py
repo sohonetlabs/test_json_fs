@@ -524,9 +524,15 @@ class JSONFileSystem(Operations):
             )
             raise FuseOSError(ENOENT)
 
-        read_size = min(size, item.get("size", 0) - offset)
+        # Clamp at 0: reads with offset past EOF return empty bytes. Without
+        # the max() guard, read_size is negative and bytearray(read_size)
+        # raises ValueError in SEMI_RANDOM_MODE.
+        read_size = max(0, min(size, item.get("size", 0) - offset))
         self._increment_stats(read_size)
         self.logger.debug(f"Returning {read_size} bytes of data")
+
+        if read_size == 0:
+            return b""
 
         if self.fill_mode == FILL_CHAR_MODE:
             return self._get_fill_buffer(read_size)

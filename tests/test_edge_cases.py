@@ -11,7 +11,7 @@ from unittest.mock import patch
 # Add parent directory to path to import jsonfs
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from jsonfs import JSONFileSystem, SEMI_RANDOM_MODE
+from jsonfs import JSONFileSystem, FILL_CHAR_MODE, SEMI_RANDOM_MODE
 
 
 class TestFillCharValidation:
@@ -147,6 +147,81 @@ class TestSemiRandomMode:
         part1 = fs.read("/test.txt", 50, 462, None)
         part2 = fs.read("/test.txt", 50, 512, None)
         assert data == part1 + part2
+
+    def test_read_offset_past_eof_returns_empty(self):
+        """read() past EOF must return empty bytes in both fill modes.
+
+        Regression: in SEMI_RANDOM_MODE, read_size was computed as
+        min(size, file_size - offset) and passed directly to
+        bytearray(read_size). When offset exceeded file_size, read_size
+        went negative and bytearray(negative) raised ValueError, which
+        propagated into FUSE as an unhandled exception and could wedge
+        the mount. FILL_CHAR_MODE accidentally handled the same case
+        (b"\\x00" * negative == b"") but the semi-random path did not.
+        Both modes must return b"" for reads entirely past EOF.
+        """
+        json_data = [
+            {
+                "type": "directory",
+                "name": "/",
+                "contents": [{"type": "file", "name": "test.txt", "size": 100}],
+            }
+        ]
+
+        for fill_mode in (FILL_CHAR_MODE, SEMI_RANDOM_MODE):
+            fs = JSONFileSystem(
+                json_data,
+                fill_mode=fill_mode,
+                seed=42,
+                report=False,
+                pre_generated_blocks=10,
+                block_size=512,
+            )
+
+            # Offset exactly at EOF — size - offset == 0, classic EOF read.
+            assert fs.read("/test.txt", 50, 100, None) == b"", (
+                f"read at EOF should be empty in {fill_mode}"
+            )
+
+            # Offset past EOF — size - offset is negative. This is the
+            # regression: pre-fix, SEMI_RANDOM_MODE raised ValueError here.
+            assert fs.read("/test.txt", 50, 200, None) == b"", (
+                f"read past EOF should be empty in {fill_mode}"
+            )
+
+            # Far past EOF — large negative read_size.
+            assert fs.read("/test.txt", 50, 10_000_000, None) == b"", (
+                f"read far past EOF should be empty in {fill_mode}"
+            )
+
+    def test_read_straddling_eof_returns_partial(self):
+        """A read that starts before EOF and extends past it must return
+        exactly (file_size - offset) bytes, not crash or return garbage.
+        """
+        json_data = [
+            {
+                "type": "directory",
+                "name": "/",
+                "contents": [{"type": "file", "name": "test.txt", "size": 100}],
+            }
+        ]
+
+        for fill_mode in (FILL_CHAR_MODE, SEMI_RANDOM_MODE):
+            fs = JSONFileSystem(
+                json_data,
+                fill_mode=fill_mode,
+                seed=42,
+                report=False,
+                pre_generated_blocks=10,
+                block_size=512,
+            )
+
+            # Request 50 bytes starting at offset 80 (20 bytes of file
+            # left) — should return exactly 20 bytes, not 50, not raise.
+            data = fs.read("/test.txt", 50, 80, None)
+            assert len(data) == 20, (
+                f"straddling-EOF read should return file_size-offset bytes in {fill_mode}"
+            )
 
 
 class TestLargeFiles:
