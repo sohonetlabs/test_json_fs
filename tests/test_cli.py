@@ -140,6 +140,50 @@ class TestCLI:
         assert result.returncode != 0
         assert "Failed to read JSON file" in result.stderr
 
+    def test_invalid_unicode_normalization_value(self, json_file):
+        """Unknown unicode-normalization values must be rejected by
+        argparse, not silently accepted and ignored at runtime.
+        """
+        result = self.run_jsonfs(["--unicode-normalization", "NotARealForm"], json_file)
+        assert result.returncode != 0
+        assert (
+            "invalid choice" in result.stderr.lower() or "NotARealForm" in result.stderr
+        )
+
+    def test_invalid_log_level(self, json_file):
+        """Unknown log levels must be rejected by argparse."""
+        result = self.run_jsonfs(["--log-level", "SHOUT"], json_file)
+        assert result.returncode != 0
+        assert "invalid choice" in result.stderr.lower() or "SHOUT" in result.stderr
+
+    def test_invalid_fill_char_multi_character(self, json_file):
+        """--fill-char must accept exactly one character. Multi-character
+        values should be rejected at init time, not silently truncated.
+        """
+        result = self.run_jsonfs(["--fill-char", "ABC"], json_file)
+        assert result.returncode != 0
+
+    def test_invalid_block_size(self, json_file):
+        """--block-size must parse as an integer with optional unit suffix.
+        Nonsense values must fail cleanly instead of silently defaulting.
+        """
+        result = self.run_jsonfs(["--block-size", "not-a-size"], json_file)
+        assert result.returncode != 0
+
+    def test_non_integer_uid(self, json_file):
+        """--uid must be an integer. Non-integer values should fail at
+        argparse, not at mount time.
+        """
+        result = self.run_jsonfs(["--uid", "root"], json_file)
+        assert result.returncode != 0
+
+    def test_mutually_exclusive_fill_char_and_semi_random(self, json_file):
+        """--fill-char and --semi-random are documented as mutually
+        exclusive. Passing both must fail.
+        """
+        result = self.run_jsonfs(["--fill-char", "x", "--semi-random"], json_file)
+        assert result.returncode != 0
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

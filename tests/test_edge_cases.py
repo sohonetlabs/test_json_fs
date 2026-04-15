@@ -6,12 +6,18 @@ import sys
 import pytest
 import subprocess
 import tempfile
+from errno import EINVAL, EISDIR, ENODATA, ENOENT, EROFS
 from unittest.mock import patch
 
 # Add parent directory to path to import jsonfs
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# jsonfs must be imported BEFORE fuse: jsonfs's module-level code sets
+# FUSE_LIBRARY_PATH so fusepy can find libfuse-t on macOS. Importing fuse
+# first causes an OSError("Unable to find libfuse") on hosts where the
+# library isn't on the default ctypes.util.find_library search path.
 from jsonfs import JSONFileSystem, FILL_CHAR_MODE, SEMI_RANDOM_MODE
+from fuse import FuseOSError
 
 
 class TestFillCharValidation:
@@ -452,8 +458,6 @@ class TestFUSEOperations:
 
     def test_getattr_nonexistent(self, fs):
         """Test getattr on non-existent path."""
-        from fuse import FuseOSError
-        from errno import ENOENT
 
         with pytest.raises(FuseOSError) as exc:
             fs.getattr("/nonexistent")
@@ -487,8 +491,6 @@ class TestFUSEOperations:
 
     def test_write_operations_fail(self, fs):
         """Test that write operations fail with EROFS."""
-        from fuse import FuseOSError
-        from errno import EROFS
 
         # Test various write operations
         with pytest.raises(FuseOSError) as exc:
@@ -513,8 +515,6 @@ class TestFUSEOperations:
         assert fs.access("/file.txt", 0) == 0
 
         # Test access on non-existent file
-        from fuse import FuseOSError
-        from errno import ENOENT
 
         with pytest.raises(FuseOSError) as exc:
             fs.access("/nonexistent", 0)
@@ -537,8 +537,6 @@ class TestFUSEOperations:
         assert fs.opendir("/dir") == 0
 
         # Test opendir on non-existent
-        from fuse import FuseOSError
-        from errno import ENOENT
 
         with pytest.raises(FuseOSError) as exc:
             fs.opendir("/nonexistent")
@@ -560,13 +558,21 @@ class TestFUSEOperations:
 
     def test_symlink_operations(self, fs):
         """Test symlink-related operations."""
-        from fuse import FuseOSError
-        from errno import ENOENT, EROFS
 
-        # readlink should fail (not supported)
+        # readlink on a nonexistent path is ENOENT.
         with pytest.raises(FuseOSError) as exc:
-            fs.readlink("/any")
+            fs.readlink("/nonexistent")
         assert exc.value.errno == ENOENT
+
+        # readlink on a regular file is EINVAL ("not a symlink"), per POSIX.
+        with pytest.raises(FuseOSError) as exc:
+            fs.readlink("/file.txt")
+        assert exc.value.errno == EINVAL
+
+        # readlink on a directory is also EINVAL.
+        with pytest.raises(FuseOSError) as exc:
+            fs.readlink("/dir")
+        assert exc.value.errno == EINVAL
 
         # symlink creation should fail (read-only)
         with pytest.raises(FuseOSError) as exc:
@@ -581,8 +587,6 @@ class TestFUSEOperations:
 
     def test_permission_operations(self, fs):
         """Test permission-related operations."""
-        from fuse import FuseOSError
-        from errno import EROFS
 
         # chmod should fail (read-only)
         with pytest.raises(FuseOSError) as exc:
@@ -596,8 +600,6 @@ class TestFUSEOperations:
 
     def test_link_operations(self, fs):
         """Test hard link operations."""
-        from fuse import FuseOSError
-        from errno import EROFS
 
         # link should fail (read-only)
         with pytest.raises(FuseOSError) as exc:
@@ -611,8 +613,6 @@ class TestFUSEOperations:
 
     def test_xattr_operations(self, fs):
         """Test extended attribute operations."""
-        from fuse import FuseOSError
-        from errno import ENODATA, EROFS
 
         # getxattr should return ENODATA
         with pytest.raises(FuseOSError) as exc:
@@ -629,8 +629,6 @@ class TestFUSEOperations:
 
     def test_rename_operation(self, fs):
         """Test rename operation."""
-        from fuse import FuseOSError
-        from errno import EROFS
 
         # rename should fail (read-only)
         with pytest.raises(FuseOSError) as exc:
@@ -712,9 +710,6 @@ class TestUncoveredErrorCases:
         """Test reading from a directory path."""
         # Try to read a directory as a file
         with patch.object(fs.logger, "warning") as mock_warning:
-            from fuse import FuseOSError
-            from errno import ENOENT
-
             with pytest.raises(FuseOSError) as cm:
                 fs.read("/subdir", 0, 0, None)
             assert cm.value.errno == ENOENT
@@ -725,9 +720,6 @@ class TestUncoveredErrorCases:
         """Test readdir on a file path."""
         # Try to list a file as directory
         with patch.object(fs.logger, "warning") as mock_warning:
-            from fuse import FuseOSError
-            from errno import ENOENT
-
             with pytest.raises(FuseOSError) as cm:
                 list(fs.readdir("/file.txt", None))
             assert cm.value.errno == ENOENT
@@ -744,9 +736,6 @@ class TestUncoveredErrorCases:
 
         # Try to access AppleDouble file
         with patch.object(fs.logger, "debug") as mock_debug:
-            from fuse import FuseOSError
-            from errno import ENOENT
-
             with pytest.raises(FuseOSError) as cm:
                 fs.getattr("/._test.txt")
             assert cm.value.errno == ENOENT
@@ -798,6 +787,260 @@ class TestUncoveredErrorCases:
             assert "level1" in output
             assert "level2" in output
             assert "level3" not in output
+
+
+class TestPOSIXErrorCodes:
+    """FUSE methods must return the POSIX-correct error codes so that
+    tools checking errno behave correctly.
+    """
+
+    @pytest.fixture
+    def fs(self):
+        json_data = [
+            {
+                "type": "directory",
+                "name": "/",
+                "contents": [
+                    {"type": "file", "name": "file.txt", "size": 100},
+                    {"type": "directory", "name": "subdir", "contents": []},
+                ],
+            }
+        ]
+        return JSONFileSystem(
+            json_data, report=False, pre_generated_blocks=1, block_size=1024
+        )
+
+    def test_open_on_directory_raises_eisdir(self, fs):
+        """open() on a directory must raise EISDIR, not ENOENT.
+
+        POSIX reserves ENOENT for "path does not exist". A path that
+        exists but is a directory needs a different error so callers
+        can distinguish the two cases.
+        """
+
+        with pytest.raises(FuseOSError) as exc:
+            fs.open("/subdir", 0)
+        assert exc.value.errno == EISDIR
+
+    def test_open_on_nonexistent_still_raises_enoent(self, fs):
+        """The EISDIR fix must not shadow the genuine ENOENT case."""
+
+        with pytest.raises(FuseOSError) as exc:
+            fs.open("/nothing_here", 0)
+        assert exc.value.errno == ENOENT
+
+    def test_open_on_regular_file_still_succeeds(self, fs):
+        """Regression guard for the EISDIR fix."""
+        assert fs.open("/file.txt", 0) == 0
+
+
+class TestXattrKnownNames:
+    """getxattr must return ENODATA for every name, including well-known
+    platform-specific attributes. If anyone adds conditional xattr
+    handling in the future, this test catches the divergence.
+    """
+
+    @pytest.fixture
+    def fs(self):
+        json_data = [
+            {
+                "type": "directory",
+                "name": "/",
+                "contents": [{"type": "file", "name": "file.txt", "size": 10}],
+            }
+        ]
+        return JSONFileSystem(
+            json_data, report=False, pre_generated_blocks=1, block_size=1024
+        )
+
+    @pytest.mark.parametrize(
+        "xattr_name",
+        [
+            "com.apple.ResourceFork",
+            "com.apple.FinderInfo",
+            "com.apple.quarantine",
+            "com.apple.metadata:kMDItemWhereFroms",
+            "security.selinux",
+            "security.capability",
+            "user.mime_type",
+            "user.anything",
+            "trusted.foo",
+            "",  # empty name
+        ],
+    )
+    def test_getxattr_returns_enodata(self, fs, xattr_name):
+
+        with pytest.raises(FuseOSError) as exc:
+            fs.getxattr("/file.txt", xattr_name)
+        assert exc.value.errno == ENODATA
+
+
+class TestEdgeCaseFilesystems:
+    """Minimal-shape JSON trees that cover readdir/read/getattr edge cases."""
+
+    @pytest.mark.parametrize("fill_mode", [FILL_CHAR_MODE, SEMI_RANDOM_MODE])
+    def test_read_zero_size_file_returns_empty(self, fill_mode):
+        """Reading a size=0 file must return b'' regardless of fill mode."""
+        json_data = [
+            {
+                "type": "directory",
+                "name": "/",
+                "contents": [{"type": "file", "name": "empty.txt", "size": 0}],
+            }
+        ]
+        fs = JSONFileSystem(
+            json_data,
+            fill_mode=fill_mode,
+            seed=42,
+            report=False,
+            pre_generated_blocks=1,
+            block_size=512,
+        )
+        assert fs.read("/empty.txt", 100, 0, None) == b""
+        assert fs.read("/empty.txt", 0, 0, None) == b""
+        assert fs.getattr("/empty.txt")["st_size"] == 0
+
+    def test_file_without_size_field_defaults_to_zero(self):
+        """Legal JSON with a file entry that omits "size" — getattr should
+        report 0, read should return empty. Guards the item.get("size", 0)
+        fallback path.
+        """
+        json_data = [
+            {
+                "type": "directory",
+                "name": "/",
+                "contents": [{"type": "file", "name": "no_size.txt"}],
+            }
+        ]
+        fs = JSONFileSystem(
+            json_data, report=False, pre_generated_blocks=1, block_size=512
+        )
+
+        assert fs.getattr("/no_size.txt")["st_size"] == 0
+        assert fs.read("/no_size.txt", 100, 0, None) == b""
+
+    def test_readdir_empty_directory(self):
+        """Empty directory yields exactly '.' and '..', nothing else."""
+        json_data = [
+            {
+                "type": "directory",
+                "name": "/",
+                "contents": [
+                    {"type": "directory", "name": "empty_dir", "contents": []},
+                ],
+            }
+        ]
+        fs = JSONFileSystem(
+            json_data, report=False, pre_generated_blocks=1, block_size=512
+        )
+
+        entries = list(fs.readdir("/empty_dir", None))
+        assert entries == [".", ".."]
+
+    def test_read_at_int32_boundary_uses_existing_fixture(self):
+        """The archive_torture_size_boundaries_large fixture declares files
+        at 2^31 and 2^32 byte sizes. getattr must round-trip the sizes
+        intact; reading a single byte at the (size-1) offset must return
+        exactly one byte without overflow. Does NOT read the full files.
+        """
+        fixture = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "example",
+            "archive_torture_size_boundaries_large.json",
+        )
+        with open(fixture) as f:
+            json_data = json.load(f)
+
+        fs = JSONFileSystem(
+            json_data, report=False, pre_generated_blocks=1, block_size=65536
+        )
+
+        for declared_size, name_substr in [
+            (2**31 - 1, "0002147483647"),
+            (2**31, "0002147483648"),
+            (2**32 - 1, "0004294967295"),
+            (2**32, "0004294967296"),
+            (2**32 + 1, "0004294967297"),
+        ]:
+            path = f"/size_{name_substr}"
+            attr = fs.getattr(path)
+            assert attr["st_size"] == declared_size, (
+                f"getattr size {attr['st_size']} != declared {declared_size} for {path}"
+            )
+
+            # Read exactly one byte at the very end — exercises the
+            # offset arithmetic near int32/int64 boundaries.
+            last_byte = fs.read(path, 1, declared_size - 1, None)
+            assert len(last_byte) == 1
+
+            # Read past EOF — must return empty, not crash (regression
+            # guard from PR #5 against int boundaries specifically).
+            assert fs.read(path, 10, declared_size + 100, None) == b""
+
+
+class TestIOPLimitConcurrency:
+    """_apply_iop_limit under concurrent pressure. The window-reset logic
+    has several branches that only surface when multiple threads cross
+    the threshold together.
+    """
+
+    def test_iop_limit_throttles_concurrent_operations(self):
+        """N threads each performing M operations with limit L must be
+        serialised by the window enforcement, not run in parallel past
+        the limit. If the limit leaked across threads, 60 ops would
+        complete in milliseconds.
+
+        Sleeps fire at ops L+1, 2L+1, 3L+1, ... so total sleeps for
+        N ops is (N-1) // L, each ~1s. For 60 ops at L=20 that's 2
+        sleeps minimum ≈ 2s elapsed.
+        """
+        import threading
+        import time
+
+        json_data = [
+            {
+                "type": "directory",
+                "name": "/",
+                "contents": [{"type": "file", "name": "file.txt", "size": 100}],
+            }
+        ]
+        fs = JSONFileSystem(
+            json_data,
+            iop_limit=20,
+            report=False,
+            pre_generated_blocks=1,
+            block_size=512,
+        )
+
+        # 3 threads × 20 ops at limit=20 forces exactly 2 enforced sleeps
+        # (ops 21 and 41 trigger the ~1s throttle wait). Expected elapsed
+        # ≈ 2s — long enough to dwarf scheduler noise, short enough to
+        # keep the test under 3s overall.
+        ops_per_thread = 20
+        num_threads = 3
+        total_ops = ops_per_thread * num_threads  # 60
+
+        def worker():
+            for _ in range(ops_per_thread):
+                fs._apply_iop_limit()
+
+        start = time.time()
+        threads = [threading.Thread(target=worker) for _ in range(num_threads)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        elapsed = time.time() - start
+
+        # Expected sleeps = (60 - 1) // 20 = 2, each ~1s, so elapsed
+        # should be >= ~2s. 75% slack (>=1.5s) absorbs scheduler noise.
+        expected_sleeps = (total_ops - 1) // 20
+        expected_min = 0.75 * expected_sleeps
+        assert elapsed >= expected_min, (
+            f"{num_threads} threads × {ops_per_thread} ops at 20 IOPS "
+            f"completed in {elapsed:.2f}s (expected >= {expected_min:.2f}s) — "
+            "the IOP limit is not being enforced across threads"
+        )
 
 
 if __name__ == "__main__":
