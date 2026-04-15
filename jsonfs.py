@@ -7,7 +7,7 @@ import sys
 import threading
 import time
 import datetime
-from errno import ENOENT, EROFS, ENODATA
+from errno import ENOENT, EROFS, ENODATA, EISDIR, EINVAL
 from functools import lru_cache
 from stat import S_IFDIR, S_IFREG
 from pathlib import Path
@@ -655,9 +655,13 @@ class JSONFileSystem(Operations):
         return 0
 
     def open(self, path, flags):
-        """Open a file (basically just check if it exists)."""
-        if not self._get_item(path):
+        """Open a file (basically just check if it exists and is a regular file)."""
+        item = self._get_item(path)
+        if item is None:
             raise FuseOSError(ENOENT)
+        if item["type"] == "directory":
+            # POSIX: opening a directory via open() is EISDIR, not ENOENT.
+            raise FuseOSError(EISDIR)
         return 0
 
     def release(self, path, fh):
@@ -665,8 +669,13 @@ class JSONFileSystem(Operations):
         return 0
 
     def readlink(self, path):
-        """Read a symlink (not supported in this filesystem)."""
-        raise FuseOSError(ENOENT)
+        """Read a symlink. This filesystem has no symlinks, so the correct
+        error depends on whether the path exists: ENOENT if not, EINVAL
+        ("not a symlink") if it exists as a regular file or directory.
+        """
+        if not self._get_item(path):
+            raise FuseOSError(ENOENT)
+        raise FuseOSError(EINVAL)
 
     def utimens(self, path, times=None):
         """Change file timestamps (no-op for read-only filesystem)."""
